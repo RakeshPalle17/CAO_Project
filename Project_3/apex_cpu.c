@@ -191,19 +191,17 @@ initializeFreeLists(APEX_CPU *cpu)
     }
 }
 
-// static void
-// initializeIssueQueue(APEX_CPU *cpu)
-// {
-//     for(int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
-//     {
-//         cpu->issueQueue[i].valid_bit = ADD_ZERO;
-//         cpu->issueQueue[i].ready_flag = ADD_ZERO;
-//         strcpy(cpu->issueQueue[i].FU_Type,"");
-//         cpu->issueQueue[i].instr->
-//         cpu->issueQueue[i].
-//     }
+static void
+initializeIssueQueue(APEX_CPU *cpu)
+{
+    for(int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
+    {
+        cpu->issueQueue[i].valid_bit = ADD_ZERO;
+        cpu->issueQueue[i].ready_flag = ADD_ZERO;
+        cpu->issueQueue[i].dispatch_time = ADD_ZERO;
+    }
 
-// }
+}
 
 // get Free physical register from head of free list
 static int
@@ -239,13 +237,17 @@ isIssueQueueFull(APEX_CPU *cpu)
     return TRUE;
 }
 
+static int
+isROBFull(APEX_CPU *cpu)
+{
+    
+}
+
+
 static void
 establishIssueQueueEntry(APEX_CPU *cpu)
 {
-    if (!isIssueQueueFull(cpu))
-    {
-
-        for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
+      for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
         {
             if (!cpu->issueQueue[i].valid_bit)
             {
@@ -255,7 +257,6 @@ establishIssueQueueEntry(APEX_CPU *cpu)
                 return;
             }
         }
-    }
 }
 
 static void
@@ -275,7 +276,7 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
         case OPCODE_STORE:
         case OPCODE_CMP:
         {
-            if (cpu->issueQueue[i].instr.phyrs1_valid && cpu->issueQueue[i].instr.phyrs2_valid)
+            if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid && cpu->issueQueue[i].instr.phyrs2_valid)
             {
                 if (min_counter > cpu->issueQueue[i].dispatch_time)
                 {
@@ -292,7 +293,7 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
         case OPCODE_CML:
         case OPCODE_LOAD:
         {
-            if (cpu->issueQueue[i].instr.phyrs1_valid)
+            if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid)
             {
                 if (min_counter > cpu->issueQueue[i].dispatch_time)
                 {
@@ -326,6 +327,10 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
         }
     }
 }
+
+
+
+
 
 /*
  * Fetch Stage of APEX Pipeline
@@ -367,8 +372,13 @@ APEX_fetch(APEX_CPU *cpu)
 
         /* Update PC for next instruction */
         cpu->pc += 4;
+
         /* Copy data from fetch latch to decode latch*/
-        cpu->decode_rename1 = cpu->fetch;
+        if(!cpu->fetch.stall)
+        {
+            cpu->decode_rename1 = cpu->fetch;
+
+        }
 
         if (ENABLE_DEBUG_MESSAGES)
         {
@@ -409,7 +419,6 @@ APEX_decode_rename1(APEX_CPU *cpu)
         case OPCODE_ADD:
         case OPCODE_SUB:
         case OPCODE_MUL:
-        case OPCODE_DIV:
         case OPCODE_AND:
         case OPCODE_OR:
         case OPCODE_XOR:
@@ -431,6 +440,21 @@ APEX_decode_rename1(APEX_CPU *cpu)
             break;
         }
 
+        case OPCODE_ADDL:
+        case OPCODE_SUBL:
+        {
+            /* Source 1 of reg to reg instruction*/
+            cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
+
+            /* destination reg allocate free physical register*/
+            int headOfFreePhyRegister = getHeadofFreePhysicalRegister(cpu);
+
+            cpu->renameTable[cpu->decode_rename1.rd] = headOfFreePhyRegister;
+            cpu->decode_rename1.phyrd = headOfFreePhyRegister;
+            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = 0;
+            break;
+        }
+
         case OPCODE_MOVC:
         {
 
@@ -443,9 +467,13 @@ APEX_decode_rename1(APEX_CPU *cpu)
 
             break;
         }
+
         }
 
-        cpu->rename2_dispatch = cpu->decode_rename1;
+        if(!cpu->decode_rename1.stall)
+        {
+           cpu->rename2_dispatch = cpu->decode_rename1;
+        }
 
         if (ENABLE_DEBUG_MESSAGES)
         {
@@ -493,18 +521,32 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
                 cpu->rename2_dispatch.phyrs2_value = cpu->physicalRegFile[cpu->rename2_dispatch.phyrs2].data_field;
                 cpu->rename2_dispatch.phyrs2_valid = 1;
             }
+            if (!isIssueQueueFull(cpu) || !isROBFUll(cpu))
+            {
+
             establishIssueQueueEntry(cpu);
+            establishROBEntry(cpu);
+
+            }
             break;
         }
 
         case OPCODE_MOVC:
         {
+            if (!isIssueQueueFull(cpu) || !isROBFUll(cpu))
+            {
+
             establishIssueQueueEntry(cpu);
+            }
             break;
         }
         case OPCODE_MUL:
         {
+                if (!isIssueQueueFull(cpu) || !isROBFUll(cpu))
+            {
+
             establishIssueQueueEntry(cpu);
+            }
             break;
         }
         

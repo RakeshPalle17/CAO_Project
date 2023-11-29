@@ -38,7 +38,7 @@ typedef struct CPU_Stage
     int incrementor;
     int memory_address;
     int has_insn;
-    int decode_stall;
+    int stall;
     int btb_hit;
     int taken;
 
@@ -96,11 +96,11 @@ typedef struct IssueQueue
 }IssueQueue;
 
 typedef struct ReorderBuffer {
+    int established_bit;
     int head;
     int tail;
     int size;
-    unsigned capacity;
-    APEX_Instruction *instruction;
+    CPU_Stage instr;
 } ReorderBuffer;
 
 
@@ -135,6 +135,8 @@ typedef struct APEX_CPU
     CCRegistrationFile ccRegFile[CC_REG_FILE_SIZE];
     IssueQueue issueQueue[ISSUE_QUEUE_SIZE];
     int issue_counter;
+
+    ReorderBuffer RoB[ROB_SIZE];
 
     int freePhysicalRegList[PHYSICAL_REG_FILE_SIZE];
     int freeCCFlagsRegList[CC_REG_FILE_SIZE];

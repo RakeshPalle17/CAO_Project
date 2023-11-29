@@ -24,6 +24,8 @@
 
 #define ISSUE_QUEUE_SIZE 24
 
+#define ROB_SIZE 32
+
 /* Size of BTB */
 #define BTB_SIZE 4
 
