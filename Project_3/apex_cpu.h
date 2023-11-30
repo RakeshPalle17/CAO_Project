@@ -97,9 +97,8 @@ typedef struct IssueQueue
 
 typedef struct ReorderBuffer {
     int established_bit;
-    int head;
-    int tail;
-    int size;
+    int lsq_index;
+    int prev_renametable_entry;
     CPU_Stage instr;
 } ReorderBuffer;
 
@@ -137,12 +136,15 @@ typedef struct APEX_CPU
     int issue_counter;
 
     ReorderBuffer RoB[ROB_SIZE];
+    int ROB_head;
+    int ROB_tail;
 
     int freePhysicalRegList[PHYSICAL_REG_FILE_SIZE];
     int freeCCFlagsRegList[CC_REG_FILE_SIZE];
     int renameTable[REG_FILE_SIZE + 1];
 
 
+    int mulcycle_counter;
     /* Pipeline stages */
     CPU_Stage fetch;
     CPU_Stage decode_rename1;
@@ -152,8 +154,7 @@ typedef struct APEX_CPU
     CPU_Stage execute_BFU;
     CPU_Stage execute_MulFU;
     CPU_Stage execute_MAU;
-    CPU_Stage memory;
-    CPU_Stage writeback;
+    CPU_Stage commit_ARF;
 } APEX_CPU;
 
 APEX_Instruction *create_code_memory(const char *filename, int *size);
