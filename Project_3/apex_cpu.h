@@ -116,39 +116,46 @@ typedef struct APEX_CPU
     int single_step;                   /* Wait for user input after every cycle */
     int zero_flag;                     /* {TRUE, FALSE} Used by BZ and BNZ to branch */
     int p_flag;
-    int n_flag;
     int fetch_from_next_cycle;
-    int decode_from_next_cycle;
-
+    
     RegisterStatusIndicator regStatus[REG_FILE_SIZE];
-    int writeToDestination;
-    int writeToSource1;
-    int writeToSource2;
-    int num_of_cycles_to_run;
-
-    BranchTargetBuffer BTBEntry[BTB_SIZE];
-    int btb_full; 
-    int counter;
 
     PhysicalRegistrationFile physicalRegFile[PHYSICAL_REG_FILE_SIZE];
+    int freePhysicalRegList[PHYSICAL_REG_FILE_SIZE];
+
     CCRegistrationFile ccRegFile[CC_REG_FILE_SIZE];
+    int freeCCFlagsRegList[CC_REG_FILE_SIZE];
+
+    int renameTable[REG_FILE_SIZE + 1];
+
     IssueQueue issueQueue[ISSUE_QUEUE_SIZE];
     int issue_counter;
+    int forwarded_tag_intFU;
+    int forwarded_reg_value_intFU;
+    int is_bus_busy_intFU;
+
+    int forwarded_tag_MulFU;
+    int forwarded_reg_value_MulFU;
+    int is_bus_busy_MulFU;
 
     ReorderBuffer RoB[ROB_SIZE];
     int ROB_head;
     int ROB_tail;
-
-    int freePhysicalRegList[PHYSICAL_REG_FILE_SIZE];
-    int freeCCFlagsRegList[CC_REG_FILE_SIZE];
-    int renameTable[REG_FILE_SIZE + 1];
-
+    int ROB_size;
+    int delete_ROB_head;
+    
+    BranchTargetBuffer BTBEntry[BTB_SIZE];
+    int btb_full; 
+    int counter;
 
     int mulcycle_counter;
+    int num_of_cycles_to_run;
+
     /* Pipeline stages */
     CPU_Stage fetch;
     CPU_Stage decode_rename1;
     CPU_Stage rename2_dispatch;
+    CPU_Stage issue_queue;
     CPU_Stage execute_IntFU;
     CPU_Stage execute_AFU;
     CPU_Stage execute_BFU;

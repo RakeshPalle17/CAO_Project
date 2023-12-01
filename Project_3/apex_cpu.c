@@ -204,8 +204,8 @@ print_instruction_arch(const CPU_Stage *stage)
 static void
 print_stage_content(const char *name, const CPU_Stage *stage)
 {
-    printf("%-15s: pc(%d) ", name, stage->pc);
-    if (strcmp(name, "Fetch"))
+    printf("%-17s: pc(%d) ", name, stage->pc);
+    if (strcmp(name, "Fetch") == 0)
     {
         print_instruction_arch(stage);
     }
@@ -217,10 +217,25 @@ print_stage_content(const char *name, const CPU_Stage *stage)
 }
 
 static void
-print_flag_values(int p, int n, int z)
+print_flag_values(int p, int z)
 {
 
-    printf("-----------\n%s P = %d, N = %d, Z = %d\n-----------\n", "Flag Values: ", p, n, z);
+    printf("-----------\n%s P = %d, Z = %d\n-----------\n", "Flag Values: ", p, z);
+}
+
+static void
+set_flag_values(APEX_CPU *cpu)
+{
+    if (cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field == 0)
+    {
+        cpu->zero_flag = TRUE;
+        cpu->p_flag = FALSE;
+    }
+    else
+    {
+        cpu->zero_flag = FALSE;
+        cpu->p_flag = TRUE;
+    }
 }
 
 static void
@@ -261,32 +276,68 @@ print_reg_file(const APEX_CPU *cpu)
 
     printf("\n");
 }
- 
+
+/* Debug function which prints the register file
+ *
+ * Note: You are not supposed to edit this function
+ */
+static void
+print_physicalRegisters_file(const APEX_CPU *cpu)
+{
+    int i;
+
+    printf("\n----------------\n%s\n----------------\n", "Physical Registers:");
+
+    for (i = 0; i < PHYSICAL_REG_FILE_SIZE; ++i)
+    {
+        if (cpu->physicalRegFile[i].valid_bit)
+        {
+            printf("P%-3d[%-3d] ", i, cpu->physicalRegFile[i].data_field);
+        }
+    }
+
+    printf("\n");
+
+    // for (i = (PHYSICAL_REG_FILE_SIZE / 2); i < PHYSICAL_REG_FILE_SIZE; ++i)
+    // {
+
+    //     printf("P%-3d[%-3d] ", i, cpu->physicalRegFile[i].data_field);
+
+    // }
+
+    // printf("\n");
+}
+
 static void
 print_issueQueue(const APEX_CPU *cpu)
 {
-    for (int i = 0; i < ISSUE_QUEUE_SIZE ; ++i)
+    printf("%-17s:", "IQ");
+    for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
-        if(cpu->issueQueue[i].valid_bit)
+        if (cpu->issueQueue[i].valid_bit)
         {
-           print_instruction_physical(&cpu->issueQueue[i].instr);
+            printf(" pc(%d) ", cpu->issueQueue[i].instr.pc);
+            print_instruction_physical(&cpu->issueQueue[i].instr);
         }
     }
+    printf("\n");
 }
 
 static void
 print_ROB(const APEX_CPU *cpu)
 {
-    for (int i = cpu->ROB_head; i <= cpu->ROB_tail ; ++i)
+    printf("%-17s:", "ROB");
+    for (int i = cpu->ROB_head; i <= cpu->ROB_tail; ++i)
     {
-        if(cpu->RoB[i].established_bit)
+        if (cpu->RoB[i].established_bit)
         {
-           print_instruction_physical(&cpu->RoB[i].instr);
+            printf(" pc(%d) ", cpu->RoB[i].instr.pc);
+            print_instruction_physical(&cpu->RoB[i].instr);
         }
     }
 
+    printf("\n");
 }
-
 
 static void
 initializeRenameTable(APEX_CPU *cpu)
@@ -332,12 +383,13 @@ initializeROB(APEX_CPU *cpu)
     }
     cpu->ROB_head = ADD_ZERO;
     cpu->ROB_tail = ROB_SIZE - 1;
+    cpu->ROB_size = ADD_ZERO;
     cpu->RoB[cpu->ROB_head].prev_renametable_entry = -1;
 }
 
 // get Free physical register from head of free list
 static int
-getHeadofFreePhysicalRegister(APEX_CPU *cpu)
+headof_free_physicalRegisters(APEX_CPU *cpu)
 {
     if (cpu->freePhysicalRegList[0] != -1)
     {
@@ -357,7 +409,7 @@ getHeadofFreePhysicalRegister(APEX_CPU *cpu)
 }
 
 static int
-isIssueQueueFull(APEX_CPU *cpu)
+is_IssueQueue_Full(APEX_CPU *cpu)
 {
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
@@ -370,13 +422,13 @@ isIssueQueueFull(APEX_CPU *cpu)
 }
 
 static int
-isROBFull(APEX_CPU *cpu)
+is_ROB_Full(APEX_CPU *cpu)
 {
-    return cpu->ROB_head = cpu->ROB_tail;
+    return cpu->ROB_size == ROB_SIZE;
 }
 
 static void
-establishIssueQueueEntry(APEX_CPU *cpu)
+establish_IssueQueueEntry(APEX_CPU *cpu)
 {
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
@@ -384,17 +436,19 @@ establishIssueQueueEntry(APEX_CPU *cpu)
         {
             cpu->issueQueue[i].valid_bit = 1;
             cpu->issueQueue[i].dispatch_time = cpu->issue_counter++;
-            cpu->issueQueue[i].instr = cpu->rename2_dispatch;
-            return;
+            cpu->issueQueue[i].instr = cpu->issue_queue;
+            break;
         }
     }
 }
 
 static void
-establishROBEntry(APEX_CPU *cpu)
+establish_ROBEntry(APEX_CPU *cpu)
 {
     cpu->ROB_tail = (cpu->ROB_tail + 1) % ROB_SIZE;
-    cpu->RoB[cpu->ROB_tail].instr = cpu->rename2_dispatch;
+    cpu->RoB[cpu->ROB_tail].established_bit = VALID;
+    cpu->RoB[cpu->ROB_tail].instr = cpu->issue_queue;
+    cpu->ROB_size++;
 }
 
 static void
@@ -403,7 +457,7 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
     int min_counter = 999;
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
-        switch (cpu->decode_rename1.opcode)
+        switch (cpu->issueQueue[i].instr.opcode)
         {
 
         case OPCODE_ADD:
@@ -414,6 +468,26 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
         case OPCODE_STORE:
         case OPCODE_CMP:
         {
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->forwarded_tag_intFU == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->forwarded_tag_MulFU == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->forwarded_tag_intFU == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->forwarded_tag_MulFU == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
             if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid && cpu->issueQueue[i].instr.phyrs2_valid)
             {
                 if (min_counter > cpu->issueQueue[i].dispatch_time)
@@ -431,6 +505,17 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
         case OPCODE_CML:
         case OPCODE_LOAD:
         {
+
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->forwarded_tag_intFU == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->forwarded_tag_MulFU == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
             if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid)
             {
                 if (min_counter > cpu->issueQueue[i].dispatch_time)
@@ -451,15 +536,14 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
             }
             break;
         }
-
         }
     }
 
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
-        if (min_counter == cpu->issueQueue[i].dispatch_time)
+        if (cpu->issueQueue[i].valid_bit && min_counter == cpu->issueQueue[i].dispatch_time)
         {
-            cpu->execute_IntFU = cpu->issueQueue[i].instr;
+            cpu->execute_IntFU = cpu->issueQueue[i].instr;    
             cpu->issueQueue[i].valid_bit = INVALID;
             break;
         }
@@ -472,10 +556,30 @@ issueWakeupMulInstructionFromIQ(APEX_CPU *cpu)
     int min_counter = 999;
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
-        switch (cpu->decode_rename1.opcode)
+        switch (cpu->issueQueue[i].instr.opcode)
         {
         case OPCODE_MUL:
         {
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->forwarded_tag_intFU == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->forwarded_tag_MulFU == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->forwarded_tag_intFU == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->forwarded_tag_MulFU == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
             if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid && cpu->issueQueue[i].instr.phyrs2_valid)
             {
                 if (min_counter > cpu->issueQueue[i].dispatch_time)
@@ -490,7 +594,7 @@ issueWakeupMulInstructionFromIQ(APEX_CPU *cpu)
 
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
-        if (min_counter == cpu->issueQueue[i].dispatch_time && cpu->mulcycle_counter == 0)
+        if (cpu->issueQueue[i].valid_bit && min_counter == cpu->issueQueue[i].dispatch_time && cpu->mulcycle_counter == 0)
         {
             cpu->execute_MulFU = cpu->issueQueue[i].instr;
             cpu->issueQueue[i].valid_bit = INVALID;
@@ -508,6 +612,10 @@ issueWakeupMulInstructionFromIQ(APEX_CPU *cpu)
 static void
 APEX_fetch(APEX_CPU *cpu)
 {
+     
+    cpu->is_bus_busy_intFU = 0;
+    cpu->is_bus_busy_MulFU = 0;
+
     APEX_Instruction *current_ins;
 
     if (cpu->fetch.has_insn)
@@ -519,7 +627,7 @@ APEX_fetch(APEX_CPU *cpu)
 
             if (ENABLE_DEBUG_MESSAGES)
             {
-                printf("Fetch          :\n");
+                printf("%-17s:\n", "Fetch");
             }
 
             /* Skip this cycle*/
@@ -562,7 +670,7 @@ APEX_fetch(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("Fetch          :\n");
+            printf("%-17s:\n", "Fetch");
         }
     }
 }
@@ -597,11 +705,11 @@ APEX_decode_rename1(APEX_CPU *cpu)
             cpu->decode_rename1.phyrs2 = cpu->renameTable[cpu->decode_rename1.rs2];
 
             /* destination reg allocate free physical register*/
-            int headOfFreePhyRegister = getHeadofFreePhysicalRegister(cpu);
+            int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
             cpu->renameTable[cpu->decode_rename1.rd] = headOfFreePhyRegister;
             cpu->decode_rename1.phyrd = headOfFreePhyRegister;
-            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = 0;
+            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = INVALID;
 
             break;
         }
@@ -613,11 +721,11 @@ APEX_decode_rename1(APEX_CPU *cpu)
             cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
 
             /* destination reg allocate free physical register*/
-            int headOfFreePhyRegister = getHeadofFreePhysicalRegister(cpu);
+            int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
             cpu->renameTable[cpu->decode_rename1.rd] = headOfFreePhyRegister;
             cpu->decode_rename1.phyrd = headOfFreePhyRegister;
-            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = 0;
+            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = INVALID;
             break;
         }
 
@@ -625,11 +733,11 @@ APEX_decode_rename1(APEX_CPU *cpu)
         {
 
             /* destination reg allocate free physical register*/
-            int headOfFreePhyRegister = getHeadofFreePhysicalRegister(cpu);
+            int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
             cpu->renameTable[cpu->decode_rename1.rd] = headOfFreePhyRegister;
             cpu->decode_rename1.phyrd = headOfFreePhyRegister;
-            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = 0;
+            cpu->physicalRegFile[cpu->decode_rename1.phyrd].valid_bit = INVALID;
 
             break;
         }
@@ -640,10 +748,12 @@ APEX_decode_rename1(APEX_CPU *cpu)
         }
         }
 
-        if (!cpu->rename2_dispatch.stall || !isIssueQueueFull(cpu))
+        if (!cpu->rename2_dispatch.stall || !is_IssueQueue_Full(cpu))
         {
             cpu->rename2_dispatch = cpu->decode_rename1;
         }
+
+        cpu->decode_rename1.has_insn = FALSE;
 
         if (ENABLE_DEBUG_MESSAGES)
         {
@@ -654,7 +764,7 @@ APEX_decode_rename1(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("Decode_rename1      :\n");
+            printf("%-17s:\n", "Decode_rename1");
         }
     }
 }
@@ -680,28 +790,60 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
         case OPCODE_XOR:
         case OPCODE_MUL:
         {
-
+            /* physical registers src1*/
             if (cpu->physicalRegFile[cpu->rename2_dispatch.phyrs1].valid_bit)
             {
                 cpu->rename2_dispatch.phyrs1_value = cpu->physicalRegFile[cpu->rename2_dispatch.phyrs1].data_field;
-                cpu->rename2_dispatch.phyrs1_valid = 1;
+                cpu->rename2_dispatch.phyrs1_valid = VALID;
             }
-
+            
+            /* physical registers src1*/
             if (cpu->physicalRegFile[cpu->rename2_dispatch.phyrs2].valid_bit)
             {
                 cpu->rename2_dispatch.phyrs2_value = cpu->physicalRegFile[cpu->rename2_dispatch.phyrs2].data_field;
-                cpu->rename2_dispatch.phyrs2_valid = 1;
+                cpu->rename2_dispatch.phyrs2_valid = VALID;
             }
 
-            if (isIssueQueueFull(cpu) || isROBFUll(cpu))
-            {
-                cpu->rename2_dispatch.stall = TRUE;
+            /*int forwarding bus src1*/
 
+            if (!cpu->rename2_dispatch.phyrs1_valid && cpu->forwarded_tag_intFU == cpu->decode_rename1.phyrs1)
+            {
+                cpu->rename2_dispatch.phyrs1_valid = VALID;
+                cpu->rename2_dispatch.phyrs1_value = cpu->forwarded_reg_value_intFU;
+            }
+
+            /*Mul forwarding bus src1*/
+
+            if (!cpu->rename2_dispatch.phyrs1_valid && cpu->forwarded_tag_MulFU == cpu->decode_rename1.phyrs1)
+            {
+                cpu->rename2_dispatch.phyrs1_valid = VALID;
+                cpu->rename2_dispatch.phyrs1_value = cpu->forwarded_reg_value_MulFU;
+            }
+
+            
+            /*int forwarding bus src2*/
+            if (!cpu->rename2_dispatch.phyrs2_valid && cpu->forwarded_tag_intFU == cpu->decode_rename1.phyrs2)
+            {
+                cpu->rename2_dispatch.phyrs2_valid = VALID;
+                cpu->rename2_dispatch.phyrs2_value = cpu->forwarded_reg_value_intFU;
+            }
+            
+            /*Mul forwarding bus src2*/
+
+            if (!cpu->rename2_dispatch.phyrs2_valid && cpu->forwarded_tag_MulFU == cpu->decode_rename1.phyrs2)
+            {
+                cpu->rename2_dispatch.phyrs2_valid = VALID;
+                cpu->rename2_dispatch.phyrs2_value = cpu->forwarded_reg_value_MulFU;
+            }
+
+            if (is_IssueQueue_Full(cpu) || is_ROB_Full(cpu))
+            {
+
+                cpu->rename2_dispatch.stall = TRUE;
             }
             else
             {
-                establishIssueQueueEntry(cpu);
-                establishROBEntry(cpu);
+                cpu->issue_queue = cpu->rename2_dispatch;
             }
 
             break;
@@ -710,36 +852,60 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
         case OPCODE_MOVC:
         case OPCODE_HALT:
         {
-            if (isIssueQueueFull(cpu) || isROBFUll(cpu))
+            if (is_IssueQueue_Full(cpu) || is_ROB_Full(cpu))
             {
+
                 cpu->rename2_dispatch.stall = TRUE;
             }
             else
             {
-                establishIssueQueueEntry(cpu);
-                establishROBEntry(cpu);
+                cpu->issue_queue = cpu->rename2_dispatch;
             }
             break;
         }
-
         }
+        cpu->rename2_dispatch.has_insn = FALSE;
 
         if (ENABLE_DEBUG_MESSAGES)
         {
             print_stage_content("Rename2_disptach", &cpu->rename2_dispatch);
-            print_issueQueue(cpu);
-            print_ROB(cpu);    
         }
     }
     else
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("Rename2_disptach      :\n");
-            print_issueQueue(cpu);
-            print_ROB(cpu);
+            printf("%-17s:\n", "Rename2_disptach");
         }
     }
+}
+
+static void
+APEX_issue_queue(APEX_CPU *cpu)
+{
+    if (cpu->issue_queue.has_insn)
+    {
+
+        establish_IssueQueueEntry(cpu);
+        establish_ROBEntry(cpu);
+        cpu->issue_queue.has_insn = FALSE;
+
+        if (ENABLE_DEBUG_MESSAGES)
+        {
+            print_ROB(cpu);
+            print_issueQueue(cpu);
+        }
+    }
+    else
+    {
+        if (ENABLE_DEBUG_MESSAGES)
+        {
+            print_ROB(cpu);
+            print_issueQueue(cpu);
+        }
+    }
+
+
 
 }
 
@@ -751,9 +917,34 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
 static void
 APEX_execute_IntFU(APEX_CPU *cpu)
 {
+    if (cpu->forwarded_tag_intFU != -1 && cpu->forwarded_reg_value_intFU != -1)
+    {
+        if(!cpu->is_bus_busy_intFU)
+        {
+            if (cpu->forwarded_tag_intFU == cpu->execute_IntFU.phyrd)
+            {
+                cpu->physicalRegFile[cpu->forwarded_tag_intFU].data_field = cpu->forwarded_reg_value_intFU;
+                cpu->physicalRegFile[cpu->forwarded_tag_intFU].valid_bit = VALID;
+            }
+        }
+    }
+
+    if (cpu->forwarded_tag_MulFU != -1 && cpu->forwarded_reg_value_MulFU != -1)
+    {
+        if(!cpu->is_bus_busy_MulFU)
+        {
+            if (cpu->forwarded_tag_MulFU == cpu->execute_IntFU.phyrd)
+            {
+            cpu->physicalRegFile[cpu->forwarded_tag_MulFU].data_field = cpu->forwarded_reg_value_MulFU;
+            cpu->physicalRegFile[cpu->forwarded_tag_MulFU].valid_bit = VALID;
+            }
+
+        }
+    }
 
     issueWakeupInstructionFromIQ(cpu);
 
+    
     if (cpu->execute_IntFU.has_insn)
     {
         /* Execute logic based on instruction type */
@@ -761,25 +952,84 @@ APEX_execute_IntFU(APEX_CPU *cpu)
         {
         case OPCODE_ADD:
         {
-            cpu->execute_IntFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs1].data_field;
-            cpu->execute_IntFU.phyrs2_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs2].data_field;
+            if (cpu->forwarded_tag_intFU == cpu->execute_IntFU.phyrs1)
+            {
+                cpu->execute_IntFU.phyrs1_value = cpu->forwarded_reg_value_intFU;
+            }
+            else if (cpu->forwarded_tag_MulFU == cpu->execute_IntFU.phyrs1)
+            {
+                cpu->execute_IntFU.phyrs1_value = cpu->forwarded_reg_value_MulFU;
+            }
+            else
+            {
+                cpu->execute_IntFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs1].data_field;
+            }
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value + cpu->execute_IntFU.phyrs2_value;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            if (cpu->forwarded_tag_intFU == cpu->execute_IntFU.phyrs2)
+            {
+                cpu->execute_IntFU.phyrs2_value = cpu->forwarded_reg_value_intFU;
+            }
+            else if (cpu->forwarded_tag_MulFU == cpu->execute_IntFU.phyrs2)
+            {
+                cpu->execute_IntFU.phyrs2_value = cpu->forwarded_reg_value_MulFU;
+            }
+            else
+            {
+                cpu->execute_IntFU.phyrs2_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs2].data_field;
+            }
 
+            if(!cpu->is_bus_busy_intFU)
+            {
+
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->execute_IntFU.phyrs1_value + cpu->execute_IntFU.phyrs2_value;
+            cpu->is_bus_busy_intFU = 1;
+
+            }
+
+            set_flag_values(cpu);
             break;
         }
 
         case OPCODE_SUB:
         {
-            cpu->execute_IntFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs1].data_field;
-            cpu->execute_IntFU.phyrs2_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs2].data_field;
+            if (cpu->forwarded_tag_intFU == cpu->execute_IntFU.phyrs1)
+            {
+                cpu->execute_IntFU.phyrs1_value = cpu->forwarded_reg_value_intFU;
+            }
+            else if (cpu->forwarded_tag_MulFU == cpu->execute_IntFU.phyrs1)
+            {
+                cpu->execute_IntFU.phyrs1_value = cpu->forwarded_reg_value_MulFU;
+            }
+            else
+            {
+                cpu->execute_IntFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs1].data_field;
+            }
+            
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value - cpu->execute_IntFU.phyrs2_value;
+            if (cpu->forwarded_tag_intFU == cpu->execute_IntFU.phyrs2)
+            {
+                cpu->execute_IntFU.phyrs2_value = cpu->forwarded_reg_value_intFU;
+            }
+            else if (cpu->forwarded_tag_MulFU == cpu->execute_IntFU.phyrs2)
+            {
+                cpu->execute_IntFU.phyrs2_value = cpu->forwarded_reg_value_MulFU;
+            }
+            else
+            {
+                cpu->execute_IntFU.phyrs2_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs2].data_field;
+            }
+         if(!cpu->is_bus_busy_intFU)
+            {
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->execute_IntFU.phyrs1_value - cpu->execute_IntFU.phyrs2_value;
+            cpu->is_bus_busy_intFU = 1;
 
+            }
+
+            set_flag_values(cpu);
             break;
         }
 
@@ -790,7 +1040,10 @@ APEX_execute_IntFU(APEX_CPU *cpu)
 
             cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value & cpu->execute_IntFU.phyrs2_value;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field;
+
+            set_flag_values(cpu);
             break;
         }
 
@@ -801,8 +1054,10 @@ APEX_execute_IntFU(APEX_CPU *cpu)
 
             cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value | cpu->execute_IntFU.phyrs2_value;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field;
 
+            set_flag_values(cpu);
             break;
         }
 
@@ -813,7 +1068,10 @@ APEX_execute_IntFU(APEX_CPU *cpu)
 
             cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value ^ cpu->execute_IntFU.phyrs2_value;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field;
+
+            set_flag_values(cpu);
             break;
         }
 
@@ -823,8 +1081,10 @@ APEX_execute_IntFU(APEX_CPU *cpu)
 
             cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value + cpu->execute_IntFU.imm;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field;
 
+            set_flag_values(cpu);
             break;
         }
 
@@ -832,16 +1092,32 @@ APEX_execute_IntFU(APEX_CPU *cpu)
         {
             cpu->execute_IntFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs1].data_field;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value + cpu->execute_IntFU.imm;
+            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value - cpu->execute_IntFU.imm;
 
-            cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
 
+            cpu->forwarded_reg_value_intFU = cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field;
+
+            set_flag_values(cpu);
             break;
         }
 
         case OPCODE_MOVC:
         {
-            cpu->execute_IntFU.result_buffer = cpu->execute_IntFU.imm + ADD_ZERO;
+            if(!cpu->is_bus_busy_intFU)
+            {
+            
+            cpu->forwarded_tag_intFU = cpu->execute_IntFU.phyrd;
+            cpu->forwarded_reg_value_intFU = cpu->execute_IntFU.imm + ADD_ZERO;
+            cpu->is_bus_busy_intFU = 1;
+
+            }
+            set_flag_values(cpu);
+            break;
+        }
+
+        case OPCODE_HALT:
+        {
             break;
         }
         }
@@ -858,7 +1134,8 @@ APEX_execute_IntFU(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("execute_IntFU        :\n");
+
+            printf("%-17s:\n", "execute_IntFU");
         }
     }
 }
@@ -867,18 +1144,73 @@ static void
 APEX_execute_MulFU(APEX_CPU *cpu)
 {
 
+    if (cpu->forwarded_tag_intFU != -1 && cpu->forwarded_reg_value_intFU != -1)
+    {
+        if(!cpu->is_bus_busy_intFU)
+        {
+            if (cpu->forwarded_tag_intFU == cpu->execute_MulFU.phyrd)
+            {
+                cpu->physicalRegFile[cpu->forwarded_tag_intFU].data_field = cpu->forwarded_reg_value_intFU;
+                cpu->physicalRegFile[cpu->forwarded_tag_intFU].valid_bit = VALID;
+            }
+        }
+    }
+
+    if (cpu->forwarded_tag_MulFU != -1 && cpu->forwarded_reg_value_MulFU != -1)
+    {
+        if(!cpu->is_bus_busy_MulFU)
+        {
+            if (cpu->forwarded_tag_MulFU == cpu->execute_MulFU.phyrd)
+            {
+            cpu->physicalRegFile[cpu->forwarded_tag_MulFU].data_field = cpu->forwarded_reg_value_MulFU;
+            cpu->physicalRegFile[cpu->forwarded_tag_MulFU].valid_bit = VALID;
+            }
+
+        }
+    }
+
     issueWakeupMulInstructionFromIQ(cpu);
 
     if (cpu->execute_MulFU.has_insn)
     {
-        if(--cpu->mulcycle_counter == 0)
+        if (--cpu->mulcycle_counter == 0)
         {
-                    
-          cpu->execute_IntFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs1].data_field;
-          cpu->execute_IntFU.phyrs2_value = cpu->physicalRegFile[cpu->execute_IntFU.phyrs2].data_field;
-          cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field = cpu->execute_IntFU.phyrs1_value * cpu->execute_IntFU.phyrs2_value;
-          cpu->physicalRegFile[cpu->execute_IntFU.phyrd].valid_bit = VALID;
 
+            if (cpu->forwarded_tag_MulFU == cpu->execute_MulFU.phyrs1)
+            {
+                cpu->execute_MulFU.phyrs1_value = cpu->forwarded_reg_value_MulFU;
+            }
+            else if(cpu->forwarded_tag_intFU == cpu->execute_MulFU.phyrs1)
+            {
+                cpu->execute_MulFU.phyrs1_value = cpu->forwarded_reg_value_intFU;
+            }
+            else
+            {
+                cpu->execute_MulFU.phyrs1_value = cpu->physicalRegFile[cpu->execute_MulFU.phyrs1].data_field;
+            }
+
+            if (cpu->forwarded_tag_MulFU == cpu->execute_MulFU.phyrs2)
+            {
+                cpu->execute_MulFU.phyrs2_value = cpu->forwarded_reg_value_MulFU;
+            }
+            else if(cpu->forwarded_tag_intFU == cpu->execute_MulFU.phyrs2)
+            {
+                cpu->execute_MulFU.phyrs2_value = cpu->forwarded_reg_value_intFU;
+            }
+            else
+            {
+                cpu->execute_MulFU.phyrs2_value = cpu->physicalRegFile[cpu->execute_MulFU.phyrs2].data_field;
+            }
+
+
+             if(!cpu->is_bus_busy_MulFU)
+             {
+                cpu->forwarded_tag_MulFU = cpu->execute_MulFU.phyrd;
+                cpu->forwarded_reg_value_MulFU = cpu->execute_MulFU.phyrs1_value * cpu->execute_MulFU.phyrs2_value;
+                cpu->is_bus_busy_MulFU = 1;
+             }
+            
+            set_flag_values(cpu);
         }
 
         if (ENABLE_DEBUG_MESSAGES)
@@ -890,7 +1222,7 @@ APEX_execute_MulFU(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("execute_MulFU        :\n");
+            printf("%-17s:\n", "execute_MulFU");
         }
     }
 }
@@ -913,7 +1245,7 @@ APEX_execute_AFU(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("execute_AFU        :\n");
+            printf("%-17s:\n", "execute_AFU");
         }
     }
 }
@@ -926,7 +1258,6 @@ APEX_execute_BFU(APEX_CPU *cpu)
         /* Execute logic based on instruction type */
         switch (cpu->execute_BFU.opcode)
         {
-
         }
         if (ENABLE_DEBUG_MESSAGES)
         {
@@ -937,7 +1268,8 @@ APEX_execute_BFU(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("execute_BFU        :\n");
+
+            printf("%-17s:\n", "execute_BFU");
         }
     }
 }
@@ -995,14 +1327,14 @@ APEX_execute_MAU(APEX_CPU *cpu)
 
         if (ENABLE_DEBUG_MESSAGES)
         {
-            print_stage_content("Memory", &cpu->execute_MAU);
+            print_stage_content("execute_MAU", &cpu->execute_MAU);
         }
     }
     else
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("Memory         :\n");
+            printf("%-17s:\n", "execute_MAU");
         }
     }
 }
@@ -1015,6 +1347,12 @@ APEX_execute_MAU(APEX_CPU *cpu)
 static int
 APEX_commit_to_ARF(APEX_CPU *cpu)
 {
+    if(cpu->delete_ROB_head)
+    {
+        cpu->ROB_head = (cpu->ROB_head + 1) % ROB_SIZE;
+        cpu->ROB_size--;
+        cpu->delete_ROB_head = ADD_ZERO;
+    }
     cpu->commit_ARF = cpu->RoB[cpu->ROB_head].instr;
 
     if (cpu->commit_ARF.has_insn)
@@ -1039,11 +1377,12 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
                 {
-                    cpu->physicalRegFile[cpu->commit_ARF.rd].valid_bit = INVALID;
+                    // cpu->physicalRegFile[cpu->commit_ARF.rd].valid_bit = INVALID;
+                    cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrd;
                 }
                 cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
-
-                cpu->ROB_head = (cpu->ROB_head + 1) % ROB_SIZE;
+                cpu->delete_ROB_head = 1;
+                
             }
             break;
         }
@@ -1098,7 +1437,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
     {
         if (ENABLE_DEBUG_MESSAGES)
         {
-            printf("Writeback      :\n");
+            printf("%-17s:\n", "commit_ARF");
         }
     }
 
@@ -1136,6 +1475,11 @@ APEX_cpu_init(const char *filename)
     memset(cpu->regStatus, 0, sizeof(int) * REG_FILE_SIZE);
     cpu->single_step = ENABLE_SINGLE_STEP;
     cpu->issue_counter = ADD_ZERO;
+    cpu->forwarded_tag_intFU = -1;
+    cpu->forwarded_reg_value_intFU = -1;
+    cpu->forwarded_tag_MulFU = -1;
+    cpu->forwarded_reg_value_MulFU = -1;
+    cpu->delete_ROB_head = 0;
 
     /* Parse input file and create code memory */
     cpu->code_memory = create_code_memory(filename, &cpu->code_memory_size);
@@ -1168,6 +1512,8 @@ APEX_cpu_init(const char *filename)
 
     initializeFreeLists(cpu);
     initializeRenameTable(cpu);
+    initializeROB(cpu);
+    initializeIssueQueue(cpu);
 
     return cpu;
 }
@@ -1193,8 +1539,9 @@ void APEX_cpu_run(APEX_CPU *cpu)
 
         if (APEX_commit_to_ARF(cpu) || cpu->num_of_cycles_to_run == cpu->clock)
         {
-            print_flag_values(cpu->p_flag, cpu->n_flag, cpu->zero_flag);
+            print_flag_values(cpu->p_flag, cpu->zero_flag);
             print_memory_address_values(cpu);
+            print_physicalRegisters_file(cpu);
             print_reg_file(cpu);
             /* Halt in writeback stage */
             printf("APEX_CPU: Simulation Complete, cycles = %d instructions = %d\n", cpu->clock, cpu->insn_completed);
@@ -1206,12 +1553,24 @@ void APEX_cpu_run(APEX_CPU *cpu)
         APEX_execute_BFU(cpu);
         APEX_execute_AFU(cpu);
         APEX_execute_IntFU(cpu);
+        APEX_issue_queue(cpu);
         APEX_rename2_dispatch(cpu);
         APEX_decode_rename1(cpu);
         APEX_fetch(cpu);
 
-        print_flag_values(cpu->p_flag, cpu->n_flag, cpu->zero_flag);
+        if (cpu->forwarded_tag_intFU != -1)
+        {
+            printf("\n--------------\nForwarding tag: P%d\n-----------------\n", cpu->forwarded_tag_intFU);
+        }
+
+        if (cpu->forwarded_tag_MulFU != -1)
+        {
+            printf("\n--------------\nForwarding tag: P%d\n-----------------\n", cpu->forwarded_tag_MulFU);
+        }
+
+        print_flag_values(cpu->p_flag, cpu->zero_flag);
         print_memory_address_values(cpu);
+        print_physicalRegisters_file(cpu);
         print_reg_file(cpu);
 
         if (cpu->single_step)
