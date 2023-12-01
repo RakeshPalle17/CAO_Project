@@ -37,11 +37,13 @@ typedef struct CPU_Stage
     int result_buffer;
     int incrementor;
     int memory_address;
+    int memory_address_valid;
     int has_insn;
     int stall;
     int btb_hit;
     int taken;
 
+      
     int phyrs1;
     int phyrs2;
     int phyrs1_valid;
@@ -51,7 +53,6 @@ typedef struct CPU_Stage
     int phyrs2_value;
 
 } CPU_Stage;
-
 
 typedef struct RegisterStatusIndicator
 {
@@ -70,30 +71,29 @@ typedef struct PhysicalRegistrationFile
 {
     int valid_bit;
     int data_field;
-    int delivery_list[64];
-
 } PhysicalRegistrationFile;
 
 typedef struct CCRegistrationFile
 {
     int valid_bit;
     int flag_value;
-
 } CCRegistrationFile;
 
 typedef struct RenameTableEntry{
     int physicalReg;
 } RenameTableEntry;
 
-typedef struct IssueQueue
-{
+typedef struct IssueQueue{
    int valid_bit;
-   int ready_flag;
-   char FU_Type[64];
    CPU_Stage instr;
    int dispatch_time;
-   
 }IssueQueue;
+
+typedef struct LoadStoreQueue{
+   int established_bit;
+   int LorS_bit;
+   CPU_Stage instr;
+}LoadStoreQueue;
 
 typedef struct ReorderBuffer {
     int established_bit;
@@ -130,13 +130,24 @@ typedef struct APEX_CPU
 
     IssueQueue issueQueue[ISSUE_QUEUE_SIZE];
     int issue_counter;
-    int forwarded_tag_intFU;
-    int forwarded_reg_value_intFU;
-    int value_phy1;
-    int value_phy2;
 
-    int forwarded_tag_MulFU;
-    int forwarded_reg_value_MulFU;
+    int intFU_frwded_tag;
+    int intFU_frwded_value;
+    
+    int MulFU_frwded_tag;
+    int MulFU_frwded_value;
+
+    int AFU_frwded_tag;
+    int AFU_frwded_value;
+
+    int MAU_frwded_tag;
+    int MAU_frwded_value;
+
+    LoadStoreQueue lsq[LSQ_SIZE];
+    int LSQ_head;
+    int LSQ_tail;
+    int LSQ_size;
+    int delete_LSQ_head;
 
     ReorderBuffer RoB[ROB_SIZE];
     int ROB_head;
@@ -149,6 +160,7 @@ typedef struct APEX_CPU
     int counter;
 
     int mulcycle_counter;
+    int mau_cycle_latency;
     int num_of_cycles_to_run;
 
     /* Pipeline stages */

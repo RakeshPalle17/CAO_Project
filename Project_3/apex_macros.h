@@ -24,6 +24,8 @@
 
 #define ISSUE_QUEUE_SIZE 24
 
+#define LSQ_SIZE 16
+
 #define ROB_SIZE 32
 
 /* Size of BTB */
@@ -38,6 +40,9 @@
 
 #define VALID 1
 #define INVALID 0
+
+#define LOAD 1
+#define STORE 0
 
 
 #define NOT_RENAMED -1
