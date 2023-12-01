@@ -132,11 +132,11 @@ typedef struct APEX_CPU
     int issue_counter;
     int forwarded_tag_intFU;
     int forwarded_reg_value_intFU;
-    int is_bus_busy_intFU;
+    int value_phy1;
+    int value_phy2;
 
     int forwarded_tag_MulFU;
     int forwarded_reg_value_MulFU;
-    int is_bus_busy_MulFU;
 
     ReorderBuffer RoB[ROB_SIZE];
     int ROB_head;
