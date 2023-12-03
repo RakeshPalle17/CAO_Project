@@ -44,7 +44,6 @@
 #define LOAD 1
 #define STORE 0
 
-
 #define NOT_RENAMED -1
 
 /* Numeric OPCODE identifiers for instructions */
@@ -74,9 +73,6 @@
 #define OPCODE_BNP 0x18
 #define OPCODE_JUMP 0xd
 #define OPCODE_JALR 0xe
-
-
-
 
 #define FU_
 
