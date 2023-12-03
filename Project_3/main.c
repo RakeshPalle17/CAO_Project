@@ -11,8 +11,7 @@
 
 #include "apex_cpu.h"
 
-int
-main(int argc, char const *argv[])
+int main(int argc, char const *argv[])
 {
     APEX_CPU *cpu;
 
@@ -30,9 +29,9 @@ main(int argc, char const *argv[])
         fprintf(stderr, "APEX_Error: Unable to initialize CPU\n");
         exit(1);
     }
-    if(argc > 2)
+    if (argc > 2)
     {
-        if(!strcmp(argv[2],"simulate"))
+        if (!strcmp(argv[2], "simulate"))
         {
             cpu->num_of_cycles_to_run = atoi(argv[3]);
         }

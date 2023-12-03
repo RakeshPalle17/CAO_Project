@@ -4,7 +4,6 @@
 
 #include "apex_cpu.h"
 
-
 static void
 initializeIssueQueue(APEX_CPU *cpu)
 {
@@ -41,7 +40,6 @@ initializeROB(APEX_CPU *cpu)
     cpu->ROB_size = ADD_ZERO;
     cpu->RoB[cpu->ROB_head].prev_renametable_entry = -1;
 }
-
 
 static int
 is_IssueQueue_Full(APEX_CPU *cpu)
@@ -114,6 +112,10 @@ establish_LSQEntry(APEX_CPU *cpu)
         cpu->LSQ_tail = (cpu->LSQ_tail + 1) % LSQ_SIZE;
         cpu->lsq[cpu->LSQ_tail].established_bit = VALID;
         cpu->lsq[cpu->LSQ_tail].LorS_bit = LOAD;
+        cpu->lsq[cpu->LSQ_tail].memory_address_valid = INVALID;
+        cpu->lsq[cpu->LSQ_tail].memory_address = INVALID;
+        cpu->lsq[cpu->LSQ_tail].src_data_valid = VALID;
+        cpu->lsq[cpu->LSQ_tail].phyrd = cpu->issue_queue.phyrd;
         cpu->lsq[cpu->LSQ_tail].instr = cpu->issue_queue;
         cpu->LSQ_size++;
         break;
@@ -124,6 +126,19 @@ establish_LSQEntry(APEX_CPU *cpu)
         cpu->LSQ_tail = (cpu->LSQ_tail + 1) % LSQ_SIZE;
         cpu->lsq[cpu->LSQ_tail].established_bit = VALID;
         cpu->lsq[cpu->LSQ_tail].LorS_bit = STORE;
+        cpu->lsq[cpu->LSQ_tail].memory_address_valid = INVALID;
+        cpu->lsq[cpu->LSQ_tail].memory_address = INVALID;
+
+        if (cpu->issue_queue.phyrs1_valid)
+        {
+            cpu->lsq[cpu->LSQ_tail].src_data_valid = VALID;
+        }
+        else
+        {
+            cpu->lsq[cpu->LSQ_tail].src_data_valid = INVALID;
+        }
+
+        cpu->lsq[cpu->LSQ_tail].src_tag = cpu->issue_queue.phyrs1;
         cpu->lsq[cpu->LSQ_tail].instr = cpu->issue_queue;
         cpu->LSQ_size++;
         break;

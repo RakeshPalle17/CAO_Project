@@ -93,7 +93,7 @@ set_opcode_str(const char *opcode_str)
     {
         return OPCODE_STORE;
     }
-    
+
     if (strcmp(opcode_str, "ADDL") == 0)
     {
         return OPCODE_ADDL;
@@ -104,7 +104,7 @@ set_opcode_str(const char *opcode_str)
         return OPCODE_SUBL;
     }
 
-    if (strcmp(opcode_str, "LOADP") == 0) 
+    if (strcmp(opcode_str, "LOADP") == 0)
     {
         return OPCODE_LOADP;
     }
@@ -294,7 +294,6 @@ create_APEX_instruction(APEX_Instruction *ins, char *buffer)
     {
         break;
     }
-
     }
     /* Fill in rest of the instructions accordingly */
 }
