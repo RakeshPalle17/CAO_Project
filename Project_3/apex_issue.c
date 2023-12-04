@@ -36,6 +36,11 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
 
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
             /*physical source register 2*/
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->intFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
@@ -48,6 +53,11 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
             }
 
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
                 cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
             }
@@ -82,6 +92,11 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
             {
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
+            
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
 
             if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid)
             {
@@ -110,8 +125,10 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
     {
         if (cpu->issueQueue[i].valid_bit && min_counter == cpu->issueQueue[i].dispatch_time)
         {
-            cpu->execute_IntFU = cpu->issueQueue[i].instr;
             cpu->issueQueue[i].valid_bit = INVALID;
+            cpu->issueQueue[i].instr.phyrs1_valid = INVALID;
+            cpu->issueQueue[i].instr.phyrs2_valid = INVALID;
+            cpu->execute_IntFU = cpu->issueQueue[i].instr;
             break;
         }
     }
@@ -143,6 +160,11 @@ issueWakeupMulInstructionFromIQ(APEX_CPU *cpu)
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
 
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
             /*physical source register 2*/
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->intFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
@@ -155,6 +177,11 @@ issueWakeupMulInstructionFromIQ(APEX_CPU *cpu)
             }
 
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
                 cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
             }
@@ -175,8 +202,10 @@ issueWakeupMulInstructionFromIQ(APEX_CPU *cpu)
     {
         if (cpu->issueQueue[i].valid_bit && min_counter == cpu->issueQueue[i].dispatch_time && cpu->mulcycle_counter == 0)
         {
-            cpu->execute_MulFU = cpu->issueQueue[i].instr;
             cpu->issueQueue[i].valid_bit = INVALID;
+            cpu->issueQueue[i].instr.phyrs1_valid = INVALID;
+            cpu->issueQueue[i].instr.phyrs2_valid = INVALID;
+            cpu->execute_MulFU = cpu->issueQueue[i].instr;
             cpu->mulcycle_counter = 3;
             break;
         }
@@ -209,6 +238,11 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
 
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
             if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid)
             {
                 if (min_counter > cpu->issueQueue[i].dispatch_time)
@@ -232,6 +266,11 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
             }
 
             if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
             {
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
@@ -263,6 +302,11 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
 
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
             /*physical source register 2*/
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->intFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
@@ -275,6 +319,11 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
             }
 
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
                 cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
             }
@@ -306,6 +355,11 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
 
+            if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+            {
+                cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+            }
+
             /*physical source register 2*/
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->intFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
@@ -318,6 +372,11 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
             }
 
             if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
+            {
+                cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+            }
+
+            if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
             {
                 cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
             }
@@ -338,8 +397,10 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
     {
         if (cpu->issueQueue[i].valid_bit && min_counter == cpu->issueQueue[i].dispatch_time)
         {
-            cpu->execute_AFU = cpu->issueQueue[i].instr;
             cpu->issueQueue[i].valid_bit = INVALID;
+            cpu->issueQueue[i].instr.phyrs1_valid = INVALID;
+            cpu->issueQueue[i].instr.phyrs2_valid = INVALID;
+            cpu->execute_AFU = cpu->issueQueue[i].instr;
             break;
         }
     }
@@ -348,48 +409,34 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
 static void
 updateLSQentrywithForwardedBus(APEX_CPU *cpu)
 {
-    if (cpu->lsq[cpu->LSQ_head].established_bit && !cpu->lsq[cpu->LSQ_head].memory_address_valid)
+    for (int i = cpu->LSQ_head; i <= cpu->LSQ_tail; ++i)
     {
-        if (cpu->lsq[cpu->LSQ_head].LorS_bit)
+        if (cpu->lsq[i].established_bit && !cpu->lsq[i].memory_address_valid && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->lsq[i].instr.pc)
         {
-            if (!cpu->lsq[cpu->LSQ_head].memory_address_valid && cpu->AFU_frwded_address != -1)
-            {
-                cpu->lsq[cpu->LSQ_head].memory_address = cpu->AFU_frwded_address;
-                cpu->lsq[cpu->LSQ_head].memory_address_valid = VALID;
-                cpu->AFU_frwded_address = -1;
-            }
+
+            cpu->lsq[i].memory_address = cpu->AFU_frwded_address;
+            cpu->lsq[i].memory_address_valid = VALID;
+            cpu->AFU_frwded_address = -1;
         }
-        else
+
+        if (!cpu->lsq[i].LorS_bit)
         {
-            if (!cpu->lsq[cpu->LSQ_head].memory_address_valid && cpu->AFU_frwded_address != -1)
+            if (!cpu->lsq[i].src_data_valid && cpu->lsq[i].src_tag == cpu->intFU_frwded_tag)
             {
-                cpu->lsq[cpu->LSQ_head].memory_address = cpu->AFU_frwded_address;
-                cpu->lsq[cpu->LSQ_head].memory_address_valid = VALID;
-                cpu->AFU_frwded_address = -1;
+                cpu->lsq[i].valueToStore = cpu->intFU_frwded_value;
+                cpu->lsq[i].src_data_valid = VALID;
             }
 
-            if (!cpu->lsq[cpu->LSQ_head].src_data_valid && cpu->lsq[cpu->LSQ_head].src_tag == cpu->intFU_frwded_tag)
+            if (!cpu->lsq[i].src_data_valid && cpu->lsq[i].src_tag == cpu->MulFU_frwded_tag)
             {
-                cpu->lsq[cpu->LSQ_head].instr.phyrs1_value = cpu->intFU_frwded_value;
-                cpu->lsq[cpu->LSQ_head].src_data_valid = VALID;
+                cpu->lsq[i].valueToStore = cpu->MulFU_frwded_value;
+                cpu->lsq[i].src_data_valid = VALID;
             }
 
-            if (!cpu->lsq[cpu->LSQ_head].src_data_valid && cpu->lsq[cpu->LSQ_head].src_tag == cpu->MulFU_frwded_tag)
+            if (!cpu->lsq[i].src_data_valid && cpu->lsq[i].src_tag == cpu->AFU_frwded_tag)
             {
-                cpu->lsq[cpu->LSQ_head].instr.phyrs1_value = cpu->MulFU_frwded_value;
-                cpu->lsq[cpu->LSQ_head].src_data_valid = VALID;
-            }
-
-            if (!cpu->lsq[cpu->LSQ_head].src_data_valid && cpu->lsq[cpu->LSQ_head].src_tag == cpu->AFU_frwded_tag)
-            {
-               cpu->lsq[cpu->LSQ_head].instr.phyrs1_value = cpu->AFU_frwded_value;
-               cpu->lsq[cpu->LSQ_head].src_data_valid = VALID;
-            }
-
-            if (!cpu->lsq[cpu->LSQ_head].src_data_valid && cpu->lsq[cpu->LSQ_head].src_tag == cpu->MulFU_frwded_tag)
-            {
-                cpu->lsq[cpu->LSQ_head].instr.phyrs1_value = cpu->MulFU_frwded_value;
-                cpu->lsq[cpu->LSQ_head].src_data_valid = VALID;
+                cpu->lsq[i].valueToStore = cpu->AFU_frwded_value;
+                cpu->lsq[i].src_data_valid = VALID;
             }
         }
     }

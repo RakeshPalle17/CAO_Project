@@ -664,6 +664,7 @@ APEX_execute_AFU(APEX_CPU *cpu)
             set_Source1_value_AFU(cpu);
 
             cpu->AFU_frwded_address = cpu->execute_AFU.phyrs1_value + cpu->execute_AFU.imm;
+            cpu->AFU_frwded_pc = cpu->execute_AFU.pc;
 
             break;
         }
@@ -673,6 +674,7 @@ APEX_execute_AFU(APEX_CPU *cpu)
             set_Source1_value_AFU(cpu);
 
             cpu->AFU_frwded_address = cpu->execute_AFU.phyrs1_value + cpu->execute_AFU.imm;
+            cpu->AFU_frwded_pc = cpu->execute_AFU.pc;
 
             cpu->AFU_frwded_tag = cpu->execute_AFU.phyrs3;
             cpu->AFU_frwded_value = cpu->execute_AFU.phyrs1_value + INCREMENTOR;
@@ -683,7 +685,8 @@ APEX_execute_AFU(APEX_CPU *cpu)
         {
             set_Source2_value_AFU(cpu);
 
-            cpu->AFU_frwded_address = cpu->execute_AFU.phyrs2_value + cpu->execute_AFU.imm;            
+            cpu->AFU_frwded_address = cpu->execute_AFU.phyrs2_value + cpu->execute_AFU.imm;
+            cpu->AFU_frwded_pc = cpu->execute_AFU.pc;
 
             break;
         }
@@ -693,6 +696,7 @@ APEX_execute_AFU(APEX_CPU *cpu)
             set_Source2_value_AFU(cpu);
 
             cpu->AFU_frwded_address = cpu->execute_AFU.phyrs2_value + cpu->execute_AFU.imm;
+            cpu->AFU_frwded_pc = cpu->execute_AFU.pc;
 
             cpu->AFU_frwded_tag = cpu->execute_AFU.phyrs3;
             cpu->AFU_frwded_value = cpu->execute_AFU.phyrs2_value + INCREMENTOR;
@@ -724,7 +728,7 @@ APEX_execute_AFU(APEX_CPU *cpu)
 static void
 APEX_execute_MAU(APEX_CPU *cpu)
 {
-    if (cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency == 0 && !cpu->execute_MAU.stall)
+    if (cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency == 0)
     {
         cpu->execute_MAU = cpu->lsq[cpu->LSQ_head].instr;
         cpu->mau_cycle_latency = 2;
@@ -734,9 +738,7 @@ APEX_execute_MAU(APEX_CPU *cpu)
     {
         if (--cpu->mau_cycle_latency == 0)
         {
-            switch (cpu->execute_MAU.opcode)
-            {
-            case OPCODE_LOAD:
+            if (cpu->lsq[cpu->LSQ_head].LorS_bit)
             {
                 if (cpu->lsq[cpu->LSQ_head].memory_address_valid)
                 {
@@ -744,62 +746,15 @@ APEX_execute_MAU(APEX_CPU *cpu)
                     cpu->MAU_frwded_value = cpu->data_memory[cpu->lsq[cpu->LSQ_head].memory_address];
                     cpu->MAU_frwded_tag = cpu->lsq[cpu->LSQ_head].phyrd;
                 }
-
-                break;
             }
-
-            case OPCODE_LOADP:
+            else
             {
                 if (cpu->lsq[cpu->LSQ_head].memory_address_valid)
                 {
-                    /* Read from data memory */
-                    cpu->MAU_frwded_value = cpu->data_memory[cpu->lsq[cpu->LSQ_head].memory_address];
-                    cpu->MAU_frwded_tag = cpu->lsq[cpu->LSQ_head].phyrd;
+                    cpu->data_memory[cpu->lsq[cpu->LSQ_head].memory_address] = cpu->lsq[cpu->LSQ_head].valueToStore;
                 }
-
-                break;
             }
-
-            case OPCODE_STORE:
-            case OPCODE_STOREP:
-            {
-
-                set_Source1_value_MAU(cpu);
-
-                if (cpu->lsq[cpu->LSQ_head].memory_address_valid && cpu->lsq[cpu->LSQ_head].src_data_valid)
-                {
-                    cpu->data_memory[cpu->lsq[cpu->LSQ_head].memory_address] = cpu->lsq[cpu->LSQ_head].instr.phyrs1_value;
-                }
-
-                break;
-            }
-
-            case OPCODE_JALR:
-            case OPCODE_ADDL:
-            case OPCODE_SUBL:
-            {
-                break;
-            }
-            case OPCODE_BZ:
-            case OPCODE_BNZ:
-            case OPCODE_HALT:
-            case OPCODE_CML:
-            case OPCODE_CMP:
-            case OPCODE_NOP:
-            case OPCODE_BP:
-            case OPCODE_BNP:
-            case OPCODE_JUMP:
-            {
-                break;
-            }
-            }
-
             cpu->execute_MAU.has_insn = FALSE;
-            cpu->execute_MAU.stall = FALSE;
-        }
-        else
-        {
-            cpu->execute_MAU.stall = TRUE;
         }
 
         if (ENABLE_DEBUG_MESSAGES)
@@ -851,6 +806,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
     if (cpu->delete_ROB_head)
     {
+        cpu->RoB[cpu->ROB_head].established_bit = INVALID;
         cpu->ROB_head = (cpu->ROB_head + 1) % ROB_SIZE;
         cpu->ROB_size--;
         cpu->delete_ROB_head = ADD_ZERO;
@@ -858,6 +814,8 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
     if (cpu->delete_LSQ_head)
     {
+        cpu->lsq[cpu->LSQ_head].src_data_valid = INVALID;
+        cpu->lsq[cpu->LSQ_head].established_bit = INVALID;
         cpu->LSQ_head = (cpu->LSQ_head + 1) % LSQ_SIZE;
         cpu->LSQ_size--;
         cpu->delete_LSQ_head = ADD_ZERO;
@@ -870,6 +828,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         /* Write result to register file based on instruction type */
         switch (cpu->commit_ARF.opcode)
         {
+
         case OPCODE_ADD:
         case OPCODE_SUB:
         case OPCODE_MUL:
@@ -897,7 +856,8 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_LOAD:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->execute_MAU.stall)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit 
+            && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
             {
                 cpu->regs[cpu->commit_ARF.rd] = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
 
@@ -915,7 +875,8 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_LOADP:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->execute_MAU.stall)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit 
+            && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
             {
                 cpu->regs[cpu->commit_ARF.rd] = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
                 cpu->regs[cpu->commit_ARF.rs1] = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
@@ -933,7 +894,8 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         }
         case OPCODE_STOREP:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->execute_MAU.stall)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit 
+            && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head  && cpu->mau_cycle_latency)
             {
                 cpu->regs[cpu->commit_ARF.rs2] = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
 
@@ -950,7 +912,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         }
         case OPCODE_STORE:
         {
-            if (cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->execute_MAU.stall)
+            if (cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
             {
                 cpu->delete_ROB_head = 1;
                 cpu->delete_LSQ_head = 1;
@@ -1035,6 +997,7 @@ APEX_cpu_init(const char *filename)
     cpu->issue_counter = ADD_ZERO;
     cpu->delete_ROB_head = ADD_ZERO;
     cpu->delete_LSQ_head = ADD_ZERO;
+    cpu->mau_cycle_latency = ADD_ZERO;
 
     cpu->intFU_frwded_tag = -1;
     cpu->intFU_frwded_value = -1;

@@ -234,6 +234,11 @@ print_forwarding_tags(APEX_CPU *cpu)
     {
         printf("\n--------------\nAFUforwarding tag: P%d\n-----------------\n", cpu->AFU_frwded_tag);
     }
+    
+    if (cpu->MAU_frwded_tag != -1)
+    {
+        printf("\n--------------\nMAUforwarding tag: P%d\n-----------------\n", cpu->MAU_frwded_tag);
+    }
 }
 
 static void

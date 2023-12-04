@@ -53,7 +53,7 @@ typedef struct CPU_Stage
     int phyrd;
     int phyrs1_value;
     int phyrs2_value;
-    int phys3_value;
+    int phyrs3_value;
     
 
 } CPU_Stage;
@@ -99,6 +99,7 @@ typedef struct LoadStoreQueue
     int phyrd;
     int src_data_valid;
     int src_tag;
+    int valueToStore;
     CPU_Stage instr;
 } LoadStoreQueue;
 
@@ -146,8 +147,7 @@ typedef struct APEX_CPU
     int AFU_frwded_value;
     
     int AFU_frwded_address;
-    int AFU_frwded_phyrd;
-    int AFU_frwded_srcTag;
+    int AFU_frwded_pc;
 
     int MAU_frwded_tag;
     int MAU_frwded_value;
