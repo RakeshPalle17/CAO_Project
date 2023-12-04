@@ -856,8 +856,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_LOAD:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit 
-            && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
             {
                 cpu->regs[cpu->commit_ARF.rd] = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
 
@@ -875,8 +874,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_LOADP:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit 
-            && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
             {
                 cpu->regs[cpu->commit_ARF.rd] = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
                 cpu->regs[cpu->commit_ARF.rs1] = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
@@ -894,8 +892,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         }
         case OPCODE_STOREP:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit 
-            && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head  && cpu->mau_cycle_latency)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->mau_cycle_latency)
             {
                 cpu->regs[cpu->commit_ARF.rs2] = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
 

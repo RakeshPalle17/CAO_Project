@@ -75,7 +75,7 @@ establish_IssueQueueEntry(APEX_CPU *cpu)
         {
             cpu->issueQueue[i].valid_bit = 1;
             cpu->issueQueue[i].dispatch_time = cpu->issue_counter++;
-            cpu->issueQueue[i].instr = cpu->issue_queue;            
+            cpu->issueQueue[i].instr = cpu->issue_queue;
             break;
         }
     }

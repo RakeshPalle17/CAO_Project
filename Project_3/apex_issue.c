@@ -92,7 +92,7 @@ issueWakeupInstructionFromIQ(APEX_CPU *cpu)
             {
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
             }
-            
+
             if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
             {
                 cpu->issueQueue[i].instr.phyrs1_valid = TRUE;

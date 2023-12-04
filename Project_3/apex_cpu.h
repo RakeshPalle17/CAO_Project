@@ -54,7 +54,6 @@ typedef struct CPU_Stage
     int phyrs1_value;
     int phyrs2_value;
     int phyrs3_value;
-    
 
 } CPU_Stage;
 
@@ -117,7 +116,7 @@ typedef struct APEX_CPU
     int pc;                            /* Current program counter */
     int clock;                         /* Clock cycles elapsed */
     int insn_completed;                /* Instructions retired */
-    int regs[REG_FILE_SIZE];/* Integer register file */
+    int regs[REG_FILE_SIZE];           /* Integer register file */
     int code_memory_size;              /* Number of instruction in the input file */
     APEX_Instruction *code_memory;     /* Code Memory */
     int data_memory[DATA_MEMORY_SIZE]; /* Data Memory */
@@ -145,7 +144,7 @@ typedef struct APEX_CPU
 
     int AFU_frwded_tag;
     int AFU_frwded_value;
-    
+
     int AFU_frwded_address;
     int AFU_frwded_pc;
 

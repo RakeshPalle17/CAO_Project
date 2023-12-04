@@ -208,14 +208,12 @@ print_stage_content(const char *name, const CPU_Stage *stage)
     printf("\n");
 }
 
-
 static void
 print_flag_values(int p, int z)
 {
 
     printf("-----------\n%s P = %d, Z = %d\n-----------\n", "Flag Values: ", p, z);
 }
-
 
 static void
 print_forwarding_tags(APEX_CPU *cpu)
@@ -234,7 +232,7 @@ print_forwarding_tags(APEX_CPU *cpu)
     {
         printf("\n--------------\nAFUforwarding tag: P%d\n-----------------\n", cpu->AFU_frwded_tag);
     }
-    
+
     if (cpu->MAU_frwded_tag != -1)
     {
         printf("\n--------------\nMAUforwarding tag: P%d\n-----------------\n", cpu->MAU_frwded_tag);

@@ -28,7 +28,7 @@ set_decode_physical_source1(APEX_CPU *cpu)
         cpu->decode_rename1.phyrs1_valid = VALID;
         cpu->decode_rename1.phyrs1_value = cpu->AFU_frwded_value;
     }
-    
+
     /*MAU forwarding bus src1*/
     if (!cpu->decode_rename1.phyrs1_valid && cpu->MAU_frwded_tag == cpu->decode_rename1.phyrs1)
     {
@@ -94,7 +94,6 @@ set_dispatch_physical_source1(APEX_CPU *cpu)
         cpu->rename2_dispatch.phyrs1_value = cpu->AFU_frwded_value;
     }
 
-    
     /*MAU forwarding bus src1*/
     if (!cpu->rename2_dispatch.phyrs1_valid && cpu->MAU_frwded_tag == cpu->rename2_dispatch.phyrs1)
     {
@@ -141,8 +140,7 @@ set_dispatch_physical_source2(APEX_CPU *cpu)
         cpu->rename2_dispatch.phyrs2_value = cpu->MAU_frwded_value;
     }
 
-
-     /* physical registers src2*/
+    /* physical registers src2*/
     if (!cpu->rename2_dispatch.phyrs2_valid && cpu->physicalRegFile[cpu->rename2_dispatch.phyrs2].valid_bit)
     {
         cpu->rename2_dispatch.phyrs2_value = cpu->physicalRegFile[cpu->rename2_dispatch.phyrs2].data_field;
@@ -193,13 +191,12 @@ set_Source2_value_IntFU(APEX_CPU *cpu)
         cpu->execute_IntFU.phyrs2_value = cpu->AFU_frwded_value;
         cpu->execute_IntFU.phyrs2_valid = VALID;
     }
-      if (!cpu->execute_IntFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_IntFU.phyrs2)
+    if (!cpu->execute_IntFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_IntFU.phyrs2)
     {
         cpu->execute_IntFU.phyrs2_value = cpu->MAU_frwded_value;
         cpu->execute_IntFU.phyrs2_valid = VALID;
     }
 }
-
 
 static void
 set_Source1_value_MulFU(APEX_CPU *cpu)
@@ -212,14 +209,14 @@ set_Source1_value_MulFU(APEX_CPU *cpu)
     if (!cpu->execute_MulFU.phyrs1_valid && cpu->MulFU_frwded_tag == cpu->execute_MulFU.phyrs1)
     {
         cpu->execute_MulFU.phyrs1_value = cpu->MulFU_frwded_value;
-         cpu->execute_MulFU.phyrs1_valid = VALID;
+        cpu->execute_MulFU.phyrs1_valid = VALID;
     }
     if (!cpu->execute_MulFU.phyrs1_valid && cpu->AFU_frwded_tag == cpu->execute_MulFU.phyrs1)
     {
         cpu->execute_MulFU.phyrs1_value = cpu->AFU_frwded_value;
         cpu->execute_MulFU.phyrs1_valid = VALID;
     }
-     if (!cpu->execute_MulFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_MulFU.phyrs1)
+    if (!cpu->execute_MulFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_MulFU.phyrs1)
     {
         cpu->execute_MulFU.phyrs1_value = cpu->MAU_frwded_value;
         cpu->execute_MulFU.phyrs1_valid = VALID;
@@ -228,23 +225,23 @@ set_Source1_value_MulFU(APEX_CPU *cpu)
 
 static void
 set_Source2_value_MulFU(APEX_CPU *cpu)
-{    
+{
     if (!cpu->execute_MulFU.phyrs2_valid && cpu->intFU_frwded_tag == cpu->execute_MulFU.phyrs2)
     {
         cpu->execute_MulFU.phyrs2_value = cpu->intFU_frwded_value;
-         cpu->execute_MulFU.phyrs2_valid = VALID;
+        cpu->execute_MulFU.phyrs2_valid = VALID;
     }
     if (!cpu->execute_MulFU.phyrs2_valid && cpu->MulFU_frwded_tag == cpu->execute_MulFU.phyrs2)
     {
         cpu->execute_MulFU.phyrs2_value = cpu->MulFU_frwded_value;
-         cpu->execute_MulFU.phyrs2_valid = VALID;
+        cpu->execute_MulFU.phyrs2_valid = VALID;
     }
     if (!cpu->execute_MulFU.phyrs2_valid && cpu->AFU_frwded_tag == cpu->execute_MulFU.phyrs2)
     {
         cpu->execute_MulFU.phyrs2_value = cpu->AFU_frwded_value;
         cpu->execute_MulFU.phyrs2_valid = VALID;
     }
-     if (!cpu->execute_MulFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_MulFU.phyrs2)
+    if (!cpu->execute_MulFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_MulFU.phyrs2)
     {
         cpu->execute_MulFU.phyrs2_value = cpu->MAU_frwded_value;
         cpu->execute_MulFU.phyrs2_valid = VALID;
@@ -269,7 +266,7 @@ set_Source1_value_AFU(APEX_CPU *cpu)
         cpu->execute_AFU.phyrs1_value = cpu->AFU_frwded_value;
         cpu->execute_AFU.phyrs1_valid = VALID;
     }
-       if (!cpu->execute_AFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_AFU.phyrs1)
+    if (!cpu->execute_AFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_AFU.phyrs1)
     {
         cpu->execute_AFU.phyrs1_value = cpu->MAU_frwded_value;
         cpu->execute_AFU.phyrs1_valid = VALID;
@@ -294,13 +291,12 @@ set_Source2_value_AFU(APEX_CPU *cpu)
         cpu->execute_AFU.phyrs2_value = cpu->AFU_frwded_value;
         cpu->execute_AFU.phyrs2_valid = VALID;
     }
-       if (!cpu->execute_AFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_AFU.phyrs2)
+    if (!cpu->execute_AFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_AFU.phyrs2)
     {
         cpu->execute_AFU.phyrs2_value = cpu->MAU_frwded_value;
         cpu->execute_AFU.phyrs2_valid = VALID;
     }
 }
-
 
 static void
 update_physical_register_file(APEX_CPU *cpu)
@@ -322,7 +318,7 @@ update_physical_register_file(APEX_CPU *cpu)
         cpu->physicalRegFile[cpu->AFU_frwded_tag].data_field = cpu->AFU_frwded_value;
         cpu->physicalRegFile[cpu->AFU_frwded_tag].valid_bit = VALID;
     }
-    
+
     if (cpu->MAU_frwded_tag != -1)
     {
         cpu->physicalRegFile[cpu->MAU_frwded_tag].data_field = cpu->MAU_frwded_value;
