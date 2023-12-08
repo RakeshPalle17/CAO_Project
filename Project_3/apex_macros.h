@@ -24,6 +24,8 @@
 
 #define ISSUE_QUEUE_SIZE 24
 
+#define BRANCH_QUEUE_SIZE 16
+
 #define LSQ_SIZE 16
 
 #define ROB_SIZE 32
@@ -45,6 +47,10 @@
 #define STORE 0
 
 #define NOT_RENAMED -1
+
+#define ZERO_FLAG 0
+#define POSITIVE_FLAG 1
+
 
 /* Numeric OPCODE identifiers for instructions */
 #define OPCODE_ADD 0x0

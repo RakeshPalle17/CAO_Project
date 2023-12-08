@@ -208,12 +208,12 @@ print_stage_content(const char *name, const CPU_Stage *stage)
     printf("\n");
 }
 
-static void
-print_flag_values(int p, int z)
-{
+// static void
+// print_flag_values(int p, int z)
+// {
 
-    printf("-----------\n%s P = %d, Z = %d\n-----------\n", "Flag Values: ", p, z);
-}
+//     printf("-----------\n%s P = %d, Z = %d\n-----------\n", "Flag Values: ", p, z);
+// }
 
 static void
 print_forwarding_tags(APEX_CPU *cpu)
@@ -236,6 +236,11 @@ print_forwarding_tags(APEX_CPU *cpu)
     if (cpu->MAU_frwded_tag != -1)
     {
         printf("\n--------------\nMAUforwarding tag: P%d\n-----------------\n", cpu->MAU_frwded_tag);
+    }
+
+    if (cpu->intFu_frwded_ccTag != -1)
+    {
+        printf("\n--------------\ncc tag: P%d\n-----------------\n", cpu->intFu_frwded_ccTag);
     }
 }
 
@@ -298,6 +303,25 @@ print_physicalRegisters_file(const APEX_CPU *cpu)
     printf("\n");
 }
 
+/* Debug function which prints the register file
+ *
+ * Note: You are not supposed to edit this function
+ */
+static void
+print_CCPhysicalRegisters_file(const APEX_CPU *cpu)
+{
+    printf("\n----------------\n%s\n----------------\n", "CC flag values:");
+
+    for (int i = 0; i < CC_REG_FILE_SIZE; ++i)
+    {
+        if (cpu->ccRegFile[i].valid_bit)
+        {
+           printf("cp%i {Z = %d, P = %d}", i, cpu->ccRegFile[i].flag.zero, cpu->ccRegFile[i].flag.positive);
+        }
+    }
+    printf("\n");
+}
+
 static void
 print_issueQueue(const APEX_CPU *cpu)
 {
@@ -346,16 +370,18 @@ print_LSQ(const APEX_CPU *cpu)
 }
 
 static void
-set_flag_values(APEX_CPU *cpu)
+print_BTB(const APEX_CPU *cpu)
 {
-    if (cpu->physicalRegFile[cpu->execute_IntFU.phyrd].data_field == 0)
+    printf("%-17s:", "BTB");
+    for (int i = 0; i < BTB_SIZE; ++i)
     {
-        cpu->zero_flag = TRUE;
-        cpu->p_flag = FALSE;
+        if (cpu->BTBEntry[i].branch_pc != 0)
+        {
+            printf(" pc(%d) Prediction(%d%d)  Target[ %d ]", cpu->BTBEntry[i].branch_pc,
+                   cpu->BTBEntry[i].recent_outcomes[0], cpu->BTBEntry[i].recent_outcomes[0],
+                   cpu->BTBEntry[i].target_pc);
+        }
     }
-    else
-    {
-        cpu->zero_flag = FALSE;
-        cpu->p_flag = TRUE;
-    }
+
+    printf("\n");
 }

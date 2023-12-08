@@ -15,6 +15,15 @@ initializeIssueQueue(APEX_CPU *cpu)
 }
 
 static void
+initializeBranchQueue(APEX_CPU *cpu)
+{
+    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
+    {
+        cpu->issueQueue[i].valid_bit = ADD_ZERO;
+    }
+}
+
+static void
 initializeLSQ(APEX_CPU *cpu)
 {
     for (int i = 0; i < LSQ_SIZE; ++i)
@@ -55,6 +64,19 @@ is_IssueQueue_Full(APEX_CPU *cpu)
 }
 
 static int
+is_BranchQueue_Full(APEX_CPU *cpu)
+{
+    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
+    {
+        if (!cpu->issueQueue[i].valid_bit)
+        {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+static int
 is_ROB_Full(APEX_CPU *cpu)
 {
     return cpu->ROB_size == ROB_SIZE;
@@ -76,6 +98,21 @@ establish_IssueQueueEntry(APEX_CPU *cpu)
             cpu->issueQueue[i].valid_bit = 1;
             cpu->issueQueue[i].dispatch_time = cpu->issue_counter++;
             cpu->issueQueue[i].instr = cpu->issue_queue;
+            break;
+        }
+    }
+}
+
+static void
+establish_BranchQueueEntry(APEX_CPU *cpu)
+{
+    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
+    {
+        if (!cpu->branchQueue[i].valid_bit)
+        {
+            cpu->branchQueue[i].valid_bit = 1;
+            cpu->branchQueue[i].dispatch_time = cpu->branch_counter++;
+            cpu->branchQueue[i].instr = cpu->issue_queue;
             break;
         }
     }

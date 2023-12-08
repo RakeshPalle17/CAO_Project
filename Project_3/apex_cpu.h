@@ -55,6 +55,9 @@ typedef struct CPU_Stage
     int phyrs2_value;
     int phyrs3_value;
 
+    int flag;
+    int target_address;
+
 } CPU_Stage;
 
 typedef struct BranchTargetBuffer
@@ -71,10 +74,16 @@ typedef struct PhysicalRegistrationFile
     int data_field;
 } PhysicalRegistrationFile;
 
+typedef struct Flags
+{
+   int zero;
+   int positive;
+}Flags;
+
 typedef struct CCRegistrationFile
 {
     int valid_bit;
-    int flag_value;
+    Flags flag;
 } CCRegistrationFile;
 
 typedef struct RenameTableEntry
@@ -88,6 +97,17 @@ typedef struct IssueQueue
     CPU_Stage instr;
     int dispatch_time;
 } IssueQueue;
+
+typedef struct BranchQueue
+{
+    int valid_bit;
+    int prediction;
+    int target_address;
+    int cc_tag;
+    int cc_content;
+    CPU_Stage instr;
+    int dispatch_time;
+} BranchQueue;
 
 typedef struct LoadStoreQueue
 {
@@ -109,6 +129,12 @@ typedef struct ReorderBuffer
     int prev_renametable_entry;
     CPU_Stage instr;
 } ReorderBuffer;
+
+typedef struct apex_cpu
+{
+    /* data */
+};
+
 
 /* Model of APEX CPU */
 typedef struct APEX_CPU
@@ -136,8 +162,14 @@ typedef struct APEX_CPU
     IssueQueue issueQueue[ISSUE_QUEUE_SIZE];
     int issue_counter;
 
+    BranchQueue branchQueue[BRANCH_QUEUE_SIZE];
+    int branch_counter;
+
     int intFU_frwded_tag;
     int intFU_frwded_value;
+
+    int intFu_frwded_ccTag;
+    Flags intFu_frwded_ccValue;
 
     int MulFU_frwded_tag;
     int MulFU_frwded_value;
@@ -150,6 +182,8 @@ typedef struct APEX_CPU
 
     int MAU_frwded_tag;
     int MAU_frwded_value;
+    int LOAD_execution_completed;
+    int STORE_execution_completed;
 
     LoadStoreQueue lsq[LSQ_SIZE];
     int LSQ_head;
@@ -170,6 +204,7 @@ typedef struct APEX_CPU
     int mulcycle_counter;
     int mau_cycle_latency;
     int num_of_cycles_to_run;
+    int compare_value;
 
     /* Pipeline stages */
     CPU_Stage fetch;

@@ -149,152 +149,60 @@ set_dispatch_physical_source2(APEX_CPU *cpu)
 }
 
 static void
-set_Source1_value_IntFU(APEX_CPU *cpu)
+set_issueQueue_src1_physical(APEX_CPU *cpu, int i)
 {
-    if (!cpu->execute_IntFU.phyrs1_valid && cpu->intFU_frwded_tag == cpu->execute_IntFU.phyrs1)
+
+    if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->intFU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
     {
-        cpu->execute_IntFU.phyrs1_value = cpu->intFU_frwded_value;
-        cpu->execute_IntFU.phyrs1_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs1_value = cpu->intFU_frwded_value;
     }
-    if (!cpu->execute_IntFU.phyrs1_valid && cpu->MulFU_frwded_tag == cpu->execute_IntFU.phyrs1)
+
+    if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MulFU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
     {
-        cpu->execute_IntFU.phyrs1_value = cpu->MulFU_frwded_value;
-        cpu->execute_IntFU.phyrs1_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs1_value = cpu->MulFU_frwded_value;
     }
-    if (!cpu->execute_IntFU.phyrs1_valid && cpu->AFU_frwded_tag == cpu->execute_IntFU.phyrs1)
+
+    if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
     {
-        cpu->execute_IntFU.phyrs1_value = cpu->AFU_frwded_value;
-        cpu->execute_IntFU.phyrs1_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs1_value = cpu->AFU_frwded_value;
     }
-    if (!cpu->execute_IntFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_IntFU.phyrs1)
+
+    if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
     {
-        cpu->execute_IntFU.phyrs1_value = cpu->MAU_frwded_value;
-        cpu->execute_IntFU.phyrs1_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs1_value = cpu->MAU_frwded_value;
     }
 }
 
 static void
-set_Source2_value_IntFU(APEX_CPU *cpu)
+set_issueQueue_src2_physical(APEX_CPU *cpu, int i)
 {
-    if (!cpu->execute_IntFU.phyrs2_valid && cpu->intFU_frwded_tag == cpu->execute_IntFU.phyrs2)
-    {
-        cpu->execute_IntFU.phyrs2_value = cpu->intFU_frwded_value;
-        cpu->execute_IntFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_IntFU.phyrs2_valid && cpu->MulFU_frwded_tag == cpu->execute_IntFU.phyrs2)
-    {
-        cpu->execute_IntFU.phyrs2_value = cpu->MulFU_frwded_value;
-        cpu->execute_IntFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_IntFU.phyrs2_valid && cpu->AFU_frwded_tag == cpu->execute_IntFU.phyrs2)
-    {
-        cpu->execute_IntFU.phyrs2_value = cpu->AFU_frwded_value;
-        cpu->execute_IntFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_IntFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_IntFU.phyrs2)
-    {
-        cpu->execute_IntFU.phyrs2_value = cpu->MAU_frwded_value;
-        cpu->execute_IntFU.phyrs2_valid = VALID;
-    }
-}
 
-static void
-set_Source1_value_MulFU(APEX_CPU *cpu)
-{
-    if (!cpu->execute_MulFU.phyrs1_valid && cpu->intFU_frwded_tag == cpu->execute_MulFU.phyrs1)
+    if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->intFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
     {
-        cpu->execute_MulFU.phyrs1_value = cpu->intFU_frwded_value;
-        cpu->execute_MulFU.phyrs1_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs2_value = cpu->intFU_frwded_value;
     }
-    if (!cpu->execute_MulFU.phyrs1_valid && cpu->MulFU_frwded_tag == cpu->execute_MulFU.phyrs1)
-    {
-        cpu->execute_MulFU.phyrs1_value = cpu->MulFU_frwded_value;
-        cpu->execute_MulFU.phyrs1_valid = VALID;
-    }
-    if (!cpu->execute_MulFU.phyrs1_valid && cpu->AFU_frwded_tag == cpu->execute_MulFU.phyrs1)
-    {
-        cpu->execute_MulFU.phyrs1_value = cpu->AFU_frwded_value;
-        cpu->execute_MulFU.phyrs1_valid = VALID;
-    }
-    if (!cpu->execute_MulFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_MulFU.phyrs1)
-    {
-        cpu->execute_MulFU.phyrs1_value = cpu->MAU_frwded_value;
-        cpu->execute_MulFU.phyrs1_valid = VALID;
-    }
-}
 
-static void
-set_Source2_value_MulFU(APEX_CPU *cpu)
-{
-    if (!cpu->execute_MulFU.phyrs2_valid && cpu->intFU_frwded_tag == cpu->execute_MulFU.phyrs2)
+    if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->MulFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
     {
-        cpu->execute_MulFU.phyrs2_value = cpu->intFU_frwded_value;
-        cpu->execute_MulFU.phyrs2_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs2_value = cpu->MulFU_frwded_value;
     }
-    if (!cpu->execute_MulFU.phyrs2_valid && cpu->MulFU_frwded_tag == cpu->execute_MulFU.phyrs2)
-    {
-        cpu->execute_MulFU.phyrs2_value = cpu->MulFU_frwded_value;
-        cpu->execute_MulFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_MulFU.phyrs2_valid && cpu->AFU_frwded_tag == cpu->execute_MulFU.phyrs2)
-    {
-        cpu->execute_MulFU.phyrs2_value = cpu->AFU_frwded_value;
-        cpu->execute_MulFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_MulFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_MulFU.phyrs2)
-    {
-        cpu->execute_MulFU.phyrs2_value = cpu->MAU_frwded_value;
-        cpu->execute_MulFU.phyrs2_valid = VALID;
-    }
-}
 
-static void
-set_Source1_value_AFU(APEX_CPU *cpu)
-{
-    if (!cpu->execute_AFU.phyrs1_valid && cpu->intFU_frwded_tag == cpu->execute_AFU.phyrs1)
+    if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->AFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
     {
-        cpu->execute_AFU.phyrs1_value = cpu->intFU_frwded_value;
-        cpu->execute_AFU.phyrs1_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs2_value = cpu->AFU_frwded_value;
     }
-    if (!cpu->execute_AFU.phyrs1_valid && cpu->MulFU_frwded_tag == cpu->execute_AFU.phyrs1)
-    {
-        cpu->execute_AFU.phyrs1_value = cpu->MulFU_frwded_value;
-        cpu->execute_AFU.phyrs1_valid = VALID;
-    }
-    if (!cpu->execute_AFU.phyrs1_valid && cpu->AFU_frwded_tag == cpu->execute_AFU.phyrs1)
-    {
-        cpu->execute_AFU.phyrs1_value = cpu->AFU_frwded_value;
-        cpu->execute_AFU.phyrs1_valid = VALID;
-    }
-    if (!cpu->execute_AFU.phyrs1_valid && cpu->MAU_frwded_tag == cpu->execute_AFU.phyrs1)
-    {
-        cpu->execute_AFU.phyrs1_value = cpu->MAU_frwded_value;
-        cpu->execute_AFU.phyrs1_valid = VALID;
-    }
-}
 
-static void
-set_Source2_value_AFU(APEX_CPU *cpu)
-{
-    if (!cpu->execute_AFU.phyrs2_valid && cpu->intFU_frwded_tag == cpu->execute_AFU.phyrs2)
+    if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->MAU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
     {
-        cpu->execute_AFU.phyrs2_value = cpu->intFU_frwded_value;
-        cpu->execute_AFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_AFU.phyrs2_valid && cpu->MulFU_frwded_tag == cpu->execute_AFU.phyrs2)
-    {
-        cpu->execute_AFU.phyrs2_value = cpu->MulFU_frwded_value;
-        cpu->execute_AFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_AFU.phyrs2_valid && cpu->AFU_frwded_tag == cpu->execute_AFU.phyrs2)
-    {
-        cpu->execute_AFU.phyrs2_value = cpu->AFU_frwded_value;
-        cpu->execute_AFU.phyrs2_valid = VALID;
-    }
-    if (!cpu->execute_AFU.phyrs2_valid && cpu->MAU_frwded_tag == cpu->execute_AFU.phyrs2)
-    {
-        cpu->execute_AFU.phyrs2_value = cpu->MAU_frwded_value;
-        cpu->execute_AFU.phyrs2_valid = VALID;
+        cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs2_value = cpu->MAU_frwded_value;
     }
 }
 
@@ -305,23 +213,49 @@ update_physical_register_file(APEX_CPU *cpu)
     {
         cpu->physicalRegFile[cpu->intFU_frwded_tag].data_field = cpu->intFU_frwded_value;
         cpu->physicalRegFile[cpu->intFU_frwded_tag].valid_bit = VALID;
+        cpu->intFU_frwded_tag = -1;
     }
 
     if (cpu->MulFU_frwded_tag != -1)
     {
         cpu->physicalRegFile[cpu->MulFU_frwded_tag].data_field = cpu->MulFU_frwded_value;
         cpu->physicalRegFile[cpu->MulFU_frwded_tag].valid_bit = VALID;
-    }
+        cpu->MulFU_frwded_tag = -1;
+        }
 
     if (cpu->AFU_frwded_tag != -1)
     {
         cpu->physicalRegFile[cpu->AFU_frwded_tag].data_field = cpu->AFU_frwded_value;
         cpu->physicalRegFile[cpu->AFU_frwded_tag].valid_bit = VALID;
+        cpu->AFU_frwded_tag = -1;
     }
 
     if (cpu->MAU_frwded_tag != -1)
     {
         cpu->physicalRegFile[cpu->MAU_frwded_tag].data_field = cpu->MAU_frwded_value;
         cpu->physicalRegFile[cpu->MAU_frwded_tag].valid_bit = VALID;
+        cpu->MAU_frwded_tag = -1;
+    }
+}
+
+
+
+static void
+update_CCphysical_register_file(APEX_CPU *cpu)
+{
+    if (cpu->intFu_frwded_ccTag != -1)
+    {
+        if(cpu->intFu_frwded_ccValue)
+        {
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.positive = cpu->intFu_frwded_ccValue;
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
+        cpu->intFu_frwded_ccTag = -1;
+        }
+        else
+        {
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = cpu->intFu_frwded_ccValue;
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
+        cpu->intFu_frwded_ccTag = -1;
+        }
     }
 }
