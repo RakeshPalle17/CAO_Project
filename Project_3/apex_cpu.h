@@ -103,7 +103,7 @@ typedef struct BranchQueue
 {
     int valid_bit;
     int issuedToAFU;
-    int issuedtoBFU;
+    int issuedToBFU;
     int prediction;
     int target_address;
     int cc_tag;
@@ -209,6 +209,7 @@ typedef struct APEX_CPU
 
     int mulcycle_counter;
     int mau_cycle_latency;
+    int stored_in_memory;
     int num_of_cycles_to_run;
     int compare_value;
 

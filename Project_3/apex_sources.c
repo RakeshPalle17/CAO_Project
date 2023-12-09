@@ -304,6 +304,7 @@ update_CCphysical_register_file(APEX_CPU *cpu)
         {
         cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.positive = cpu->intFu_frwded_ccValue;
         cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = VALID;
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
         cpu->intFu_frwded_ccTag = -1;
         }
     }

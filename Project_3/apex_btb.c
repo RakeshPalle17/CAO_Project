@@ -144,8 +144,9 @@ branch_taken_flow(APEX_CPU *cpu)
             
             if (!cpu->execute_BFU.taken)
             {
-                cpu->BFU_frwded_pc = cpu->execute_BFU.pc + INCREMENTOR;
+                cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
                 cpu->fetch.has_insn = TRUE;
+                cpu->decode_rename1.stall = FALSE;
 
             }
             if (!cpu->BTBEntry[i].recent_outcomes[0] && !cpu->BTBEntry[i].recent_outcomes[1])
@@ -178,7 +179,7 @@ branch_not_taken_flow(APEX_CPU *cpu)
             
             if (cpu->execute_BFU.taken)
             {
-                cpu->BFU_frwded_pc = cpu->execute_BFU.pc + INCREMENTOR;
+                cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
             }
             
             if (cpu->BTBEntry[i].recent_outcomes[0] && cpu->BTBEntry[i].recent_outcomes[1])
