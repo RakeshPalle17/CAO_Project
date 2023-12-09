@@ -208,12 +208,6 @@ print_stage_content(const char *name, const CPU_Stage *stage)
     printf("\n");
 }
 
-// static void
-// print_flag_values(int p, int z)
-// {
-
-//     printf("-----------\n%s P = %d, Z = %d\n-----------\n", "Flag Values: ", p, z);
-// }
 
 static void
 print_forwarding_tags(APEX_CPU *cpu)
@@ -238,9 +232,14 @@ print_forwarding_tags(APEX_CPU *cpu)
         printf("\n--------------\nMAUforwarding tag: P%d\n-----------------\n", cpu->MAU_frwded_tag);
     }
 
+    if (cpu->BFU_frwded_tag != -1)
+    {
+        printf("\n--------------\nBFUforwarding tag: P%d\n-----------------\n", cpu->BFU_frwded_tag);
+    }
+
     if (cpu->intFu_frwded_ccTag != -1)
     {
-        printf("\n--------------\ncc tag: P%d\n-----------------\n", cpu->intFu_frwded_ccTag);
+        printf("\n--------------\ncc tag: cp%d\n-----------------\n", cpu->intFu_frwded_ccTag);
     }
 }
 
@@ -250,7 +249,7 @@ print_memory_address_values(APEX_CPU *cpu)
     printf("Memory Addresses:  ");
     for (int i = 0; i < DATA_MEMORY_SIZE; i++)
     {
-        if (cpu->data_memory[i] != 0)
+        if (cpu->data_memory[i] != -1)
         {
             printf("MEM[%d] = %d ", i, cpu->data_memory[i]);
         }
@@ -270,15 +269,17 @@ print_reg_file(const APEX_CPU *cpu)
 
     for (int i = 0; i < REG_FILE_SIZE / 2; ++i)
     {
-        printf("R%-3d[%-3d] ", i, cpu->regs[i]);
+        printf("R%-3d[%-3d] ", i, cpu->regs[i].value);
     }
 
     printf("\n");
 
-    for (i = (REG_FILE_SIZE / 2); i < REG_FILE_SIZE; ++i)
+    for (i = (REG_FILE_SIZE / 2); i < REG_FILE_SIZE - 1; ++i)
     {
-        printf("R%-3d[%-3d] ", i, cpu->regs[i]);
+        printf("R%-3d[%-3d] ", i, cpu->regs[i].value);
     }
+
+    printf("R%-3d[Z = %-3d, P = %-d] ", 17, cpu->regs[i].flags.zero, cpu->regs[i].flags.positive);
 
     printf("\n");
 }
@@ -316,7 +317,7 @@ print_CCPhysicalRegisters_file(const APEX_CPU *cpu)
     {
         if (cpu->ccRegFile[i].valid_bit)
         {
-           printf("cp%i {Z = %d, P = %d}", i, cpu->ccRegFile[i].flag.zero, cpu->ccRegFile[i].flag.positive);
+            printf("cp%i {Z = %d, P = %d}", i, cpu->ccRegFile[i].flag.zero, cpu->ccRegFile[i].flag.positive);
         }
     }
     printf("\n");
@@ -335,6 +336,22 @@ print_issueQueue(const APEX_CPU *cpu)
         }
     }
     printf("\n");
+}
+
+static void
+print_BQ(const APEX_CPU *cpu)
+{
+    printf("%-17s:", "BQ");
+    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
+    {
+        if (cpu->branchQueue[i].valid_bit)
+        {
+            printf(" pc(%d) ", cpu->branchQueue[i].instr.pc);
+            print_instruction_physical(&cpu->branchQueue[i].instr);
+        }
+    }
+    printf("\n");
+
 }
 
 static void
@@ -385,3 +402,22 @@ print_BTB(const APEX_CPU *cpu)
 
     printf("\n");
 }
+
+
+// static void
+// print_BTB(const APEX_CPU *cpu)
+// {
+//     printf("--------------\n%s\n--------------\n","BTB");
+//     printf("%-9s %-9s %-9s \n", "pc", "bits", "Target");
+//     for (int i = 0; i < BTB_SIZE; ++i)
+//     {
+//         if (cpu->BTBEntry[i].branch_pc != 0)
+//         {
+//             printf("%-9d %-d%-9d %-9d \n",cpu->BTBEntry[i].branch_pc, cpu->BTBEntry[i].recent_outcomes[0], cpu->BTBEntry[i].recent_outcomes[0],
+//                    cpu->BTBEntry[i].target_pc);
+
+//         }
+//     }
+
+//     printf("\n");
+// }

@@ -35,6 +35,13 @@ set_decode_physical_source1(APEX_CPU *cpu)
         cpu->decode_rename1.phyrs1_valid = VALID;
         cpu->decode_rename1.phyrs1_value = cpu->MAU_frwded_value;
     }
+
+    /*BFU forwarding bus src1*/
+    if (!cpu->decode_rename1.phyrs1_valid && cpu->BFU_frwded_tag == cpu->decode_rename1.phyrs1)
+    {
+        cpu->decode_rename1.phyrs1_valid = VALID;
+        cpu->decode_rename1.phyrs1_value = cpu->BFU_frwded_value;
+    }
 }
 
 static void
@@ -68,6 +75,14 @@ set_decode_physical_source2(APEX_CPU *cpu)
         cpu->decode_rename1.phyrs2_valid = VALID;
         cpu->decode_rename1.phyrs2_value = cpu->MAU_frwded_value;
     }
+
+    
+    /*BFU forwarding bus src2*/
+    if (!cpu->decode_rename1.phyrs2_valid && cpu->BFU_frwded_tag == cpu->decode_rename1.phyrs2)
+    {
+        cpu->decode_rename1.phyrs2_valid = VALID;
+        cpu->decode_rename1.phyrs2_value = cpu->BFU_frwded_value;
+    }
 }
 
 static void
@@ -99,6 +114,13 @@ set_dispatch_physical_source1(APEX_CPU *cpu)
     {
         cpu->rename2_dispatch.phyrs1_valid = VALID;
         cpu->rename2_dispatch.phyrs1_value = cpu->MAU_frwded_value;
+    }
+
+    /*BFU forwarding bus src1*/
+    if (!cpu->rename2_dispatch.phyrs1_valid && cpu->BFU_frwded_tag == cpu->rename2_dispatch.phyrs1)
+    {
+        cpu->rename2_dispatch.phyrs1_valid = VALID;
+        cpu->rename2_dispatch.phyrs1_value = cpu->BFU_frwded_value;
     }
 
     /* physical registers src1*/
@@ -140,6 +162,13 @@ set_dispatch_physical_source2(APEX_CPU *cpu)
         cpu->rename2_dispatch.phyrs2_value = cpu->MAU_frwded_value;
     }
 
+    /*BFU forwarding bus src2*/
+    if (!cpu->rename2_dispatch.phyrs2_valid && cpu->BFU_frwded_tag == cpu->rename2_dispatch.phyrs2)
+    {
+        cpu->rename2_dispatch.phyrs2_valid = VALID;
+        cpu->rename2_dispatch.phyrs2_value = cpu->BFU_frwded_value;
+    }
+
     /* physical registers src2*/
     if (!cpu->rename2_dispatch.phyrs2_valid && cpu->physicalRegFile[cpu->rename2_dispatch.phyrs2].valid_bit)
     {
@@ -175,6 +204,12 @@ set_issueQueue_src1_physical(APEX_CPU *cpu, int i)
         cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
         cpu->issueQueue[i].instr.phyrs1_value = cpu->MAU_frwded_value;
     }
+
+    if (!cpu->issueQueue[i].instr.phyrs1_valid && cpu->BFU_frwded_tag == cpu->issueQueue[i].instr.phyrs1)
+    {
+        cpu->issueQueue[i].instr.phyrs1_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs1_value = cpu->BFU_frwded_value;
+    }
 }
 
 static void
@@ -203,6 +238,12 @@ set_issueQueue_src2_physical(APEX_CPU *cpu, int i)
     {
         cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
         cpu->issueQueue[i].instr.phyrs2_value = cpu->MAU_frwded_value;
+    }
+    
+    if (!cpu->issueQueue[i].instr.phyrs2_valid && cpu->BFU_frwded_tag == cpu->issueQueue[i].instr.phyrs2)
+    {
+        cpu->issueQueue[i].instr.phyrs2_valid = TRUE;
+        cpu->issueQueue[i].instr.phyrs2_value = cpu->BFU_frwded_value;
     }
 }
 
@@ -236,6 +277,13 @@ update_physical_register_file(APEX_CPU *cpu)
         cpu->physicalRegFile[cpu->MAU_frwded_tag].valid_bit = VALID;
         cpu->MAU_frwded_tag = -1;
     }
+
+   if (cpu->BFU_frwded_tag != -1)
+    {
+        cpu->physicalRegFile[cpu->BFU_frwded_tag].data_field = cpu->BFU_frwded_value;
+        cpu->physicalRegFile[cpu->BFU_frwded_tag].valid_bit = VALID;
+        cpu->BFU_frwded_tag = -1;
+    }
 }
 
 
@@ -248,13 +296,14 @@ update_CCphysical_register_file(APEX_CPU *cpu)
         if(cpu->intFu_frwded_ccValue)
         {
         cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.positive = cpu->intFu_frwded_ccValue;
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = ADD_ZERO;
         cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
         cpu->intFu_frwded_ccTag = -1;
         }
         else
         {
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = cpu->intFu_frwded_ccValue;
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.positive = cpu->intFu_frwded_ccValue;
+        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = VALID;
         cpu->intFu_frwded_ccTag = -1;
         }
     }

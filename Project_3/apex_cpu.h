@@ -57,6 +57,7 @@ typedef struct CPU_Stage
 
     int flag;
     int target_address;
+    int target_address_valid;
 
 } CPU_Stage;
 
@@ -101,6 +102,8 @@ typedef struct IssueQueue
 typedef struct BranchQueue
 {
     int valid_bit;
+    int issuedToAFU;
+    int issuedtoBFU;
     int prediction;
     int target_address;
     int cc_tag;
@@ -130,10 +133,11 @@ typedef struct ReorderBuffer
     CPU_Stage instr;
 } ReorderBuffer;
 
-typedef struct apex_cpu
+typedef struct ArchitecturalRegisterFiles
 {
-    /* data */
-};
+    int value;
+    Flags flags;
+}ArchitecturalRegisterFiles;
 
 
 /* Model of APEX CPU */
@@ -142,7 +146,7 @@ typedef struct APEX_CPU
     int pc;                            /* Current program counter */
     int clock;                         /* Clock cycles elapsed */
     int insn_completed;                /* Instructions retired */
-    int regs[REG_FILE_SIZE];           /* Integer register file */
+    ArchitecturalRegisterFiles regs[REG_FILE_SIZE];/* Integer register file */
     int code_memory_size;              /* Number of instruction in the input file */
     APEX_Instruction *code_memory;     /* Code Memory */
     int data_memory[DATA_MEMORY_SIZE]; /* Data Memory */
@@ -169,7 +173,7 @@ typedef struct APEX_CPU
     int intFU_frwded_value;
 
     int intFu_frwded_ccTag;
-    Flags intFu_frwded_ccValue;
+    int intFu_frwded_ccValue;
 
     int MulFU_frwded_tag;
     int MulFU_frwded_value;
@@ -182,8 +186,10 @@ typedef struct APEX_CPU
 
     int MAU_frwded_tag;
     int MAU_frwded_value;
-    int LOAD_execution_completed;
-    int STORE_execution_completed;
+    
+    int BFU_frwded_pc;
+    int BFU_frwded_tag;
+    int BFU_frwded_value;
 
     LoadStoreQueue lsq[LSQ_SIZE];
     int LSQ_head;

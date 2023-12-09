@@ -93,7 +93,7 @@ establish_IssueQueueEntry(APEX_CPU *cpu)
 {
     for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
     {
-        if (!cpu->issueQueue[i].valid_bit)
+        if (!cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.pc != cpu->issue_queue.pc)
         {
             cpu->issueQueue[i].valid_bit = 1;
             cpu->issueQueue[i].dispatch_time = cpu->issue_counter++;
@@ -108,7 +108,7 @@ establish_BranchQueueEntry(APEX_CPU *cpu)
 {
     for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
     {
-        if (!cpu->branchQueue[i].valid_bit)
+        if (!cpu->branchQueue[i].valid_bit && cpu->branchQueue[i].instr.pc != cpu->issue_queue.pc)
         {
             cpu->branchQueue[i].valid_bit = 1;
             cpu->branchQueue[i].dispatch_time = cpu->branch_counter++;
@@ -181,5 +181,49 @@ establish_LSQEntry(APEX_CPU *cpu)
         cpu->LSQ_size++;
         break;
     }
+    }
+}
+
+
+static void
+removeIssueQueueEntry(APEX_CPU *cpu)
+{
+    for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
+    {
+        cpu->issueQueue[i].valid_bit = ADD_ZERO;
+        cpu->issueQueue[i].dispatch_time = ADD_ZERO;
+        cpu->issueQueue[i].instr.pc = ADD_ZERO;
+    }
+}
+
+static void
+removeROBTail(APEX_CPU *cpu)
+{       
+    cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+    cpu->ROB_size--;
+    cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+}
+
+static void
+removeLSQTail(APEX_CPU *cpu)
+{       
+    if(cpu->RoB[cpu->ROB_tail].lsq_index == cpu->LSQ_tail)
+    {
+
+    cpu->lsq[cpu->LSQ_tail].established_bit = INVALID;
+    cpu->LSQ_size--;
+    cpu->LSQ_tail = (cpu->LSQ_tail - 1) % ROB_SIZE;
+
+    }
+}
+
+static void
+removeBranchQueueEntry(APEX_CPU *cpu)
+{
+    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
+    {
+        cpu->branchQueue[i].valid_bit = ADD_ZERO;
+        cpu->branchQueue[i].dispatch_time = ADD_ZERO;
+        cpu->branchQueue[i].instr.pc = ADD_ZERO;
     }
 }

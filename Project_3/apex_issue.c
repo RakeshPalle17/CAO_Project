@@ -178,7 +178,6 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
     }
 }
 
-
 static void
 issueInstructionFromBranchQueue(APEX_CPU *cpu)
 {
@@ -191,7 +190,7 @@ issueInstructionFromBranchQueue(APEX_CPU *cpu)
         case OPCODE_BNZ:
         case OPCODE_BP:
         case OPCODE_BNP:
-        {    
+        {
             if (cpu->branchQueue[i].valid_bit)
             {
                 if (min_counter > cpu->branchQueue[i].dispatch_time)
@@ -208,11 +207,11 @@ issueInstructionFromBranchQueue(APEX_CPU *cpu)
             /*physical source register 1*/
             set_issueQueue_src1_physical(cpu, i);
 
-            if (cpu->issueQueue[i].valid_bit && cpu->issueQueue[i].instr.phyrs1_valid)
+            if (cpu->branchQueue[i].valid_bit && cpu->branchQueue[i].instr.phyrs1_valid)
             {
-                if (min_counter > cpu->issueQueue[i].dispatch_time)
+                if (min_counter > cpu->branchQueue[i].dispatch_time)
                 {
-                    min_counter = cpu->issueQueue[i].dispatch_time;
+                    min_counter = cpu->branchQueue[i].dispatch_time;
                 }
             }
             break;
@@ -222,17 +221,14 @@ issueInstructionFromBranchQueue(APEX_CPU *cpu)
 
     for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
     {
-        if (cpu->branchQueue[i].valid_bit && min_counter == cpu->branchQueue[i].dispatch_time)
+        if (cpu->branchQueue[i].valid_bit && min_counter == cpu->branchQueue[i].dispatch_time && !cpu->branchQueue[i].issuedToAFU)
         {
-            cpu->branchQueue[i].valid_bit = INVALID;
-            cpu->branchQueue[i].instr.phyrs1_valid = INVALID;
-            cpu->branchQueue[i].instr.phyrs2_valid = INVALID;
             cpu->execute_AFU = cpu->branchQueue[i].instr;
+            cpu->branchQueue[i].issuedToAFU = VALID;
             break;
         }
     }
 }
-
 
 static void
 updateBranchQueue(APEX_CPU *cpu)
@@ -245,11 +241,17 @@ updateBranchQueue(APEX_CPU *cpu)
         case OPCODE_BNZ:
         case OPCODE_BP:
         case OPCODE_BNP:
-        {   
-            if (!cpu->branchQueue[i].valid_bit
-             && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc)
+        {
+            if (cpu->branchQueue[i].valid_bit && cpu->AFU_frwded_address != -1 
+            && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc && !cpu->branchQueue[i].instr.target_address_valid)
             {
-                cpu->branchQueue[i].target_address = cpu->intFU_frwded_value;
+                cpu->branchQueue[i].instr.target_address = cpu->AFU_frwded_address;
+                cpu->branchQueue[i].instr.target_address_valid = VALID;
+                cpu->issue_queue.stall = FALSE;
+            }
+            if(!cpu->branchQueue[i].instr.target_address_valid)
+            {
+                cpu->issue_queue.stall = TRUE;
             }
 
             break;
@@ -258,28 +260,36 @@ updateBranchQueue(APEX_CPU *cpu)
         case OPCODE_JUMP:
         case OPCODE_JALR:
         {
-            if (cpu->branchQueue[i].valid_bit
-             && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc)
+            if (cpu->branchQueue[i].valid_bit && cpu->AFU_frwded_address != -1 
+             && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc && !cpu->branchQueue[i].instr.target_address_valid)
             {
-                cpu->branchQueue[i].target_address = cpu->intFU_frwded_value;
+                cpu->branchQueue[i].instr.target_address = cpu->AFU_frwded_address;
+                cpu->branchQueue[i].instr.target_address_valid = VALID;
+                cpu->issue_queue.stall = FALSE;
+            }
+            if (!cpu->branchQueue[i].instr.target_address_valid)
+            {
+                cpu->issue_queue.stall = TRUE;
             }
             break;
         }
+
         }
     }
 
     for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
     {
-        if (cpu->branchQueue[i].valid_bit)
+        if (cpu->branchQueue[i].valid_bit && cpu->branchQueue[i].instr.target_address_valid
+        && !cpu->branchQueue[i].issuedtoBFU)
         {
-            cpu->branchQueue[i].valid_bit = INVALID;
-            cpu->branchQueue[i].instr.phyrs1_valid = INVALID;
-            cpu->branchQueue[i].instr.phyrs2_valid = INVALID;
-            cpu->execute_AFU = cpu->branchQueue[i].instr;
+            cpu->execute_BFU = cpu->branchQueue[i].instr;
+            cpu->branchQueue[i].issuedtoBFU = VALID;
             break;
+            }
+
         }
     }
-}
+
 
 static void
 updateLSQentrywithForwardedBus(APEX_CPU *cpu)
