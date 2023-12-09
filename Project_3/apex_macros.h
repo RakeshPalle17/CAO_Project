@@ -33,6 +33,8 @@
 /* Size of BTB */
 #define BTB_SIZE 4
 
+#define BIS_SIZE 4
+
 /* number of prediction bits*/
 #define PREDICTION_BITS 2
 

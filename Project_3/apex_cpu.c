@@ -194,6 +194,7 @@ APEX_fetch(APEX_CPU *cpu)
             cpu->BFU_frwded_pc = -1;
 
             removeBranchQueueEntry(cpu);
+            
         }
 
         if (ENABLE_DEBUG_MESSAGES)
@@ -586,7 +587,7 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
         case OPCODE_BNZ:
         case OPCODE_BP:
         {
-            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu))
+            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu) && !is_BIS_Full(cpu))
             {
                 cpu->issue_queue = cpu->rename2_dispatch;
                 cpu->rename2_dispatch.stall = FALSE;
@@ -601,7 +602,7 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
         case OPCODE_BNP:
         {
 
-            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu))
+            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu) && !is_BIS_Full(cpu))
             {
                 cpu->issue_queue = cpu->rename2_dispatch;
                 cpu->rename2_dispatch.stall = FALSE;
@@ -684,9 +685,11 @@ APEX_issue_queue(APEX_CPU *cpu)
         case OPCODE_BP:
         case OPCODE_BNP:
         {
+            establish_BISEntry(cpu);
+            establish_ROBEntry(cpu, loadorstore);
             establish_IssueQueueEntry(cpu);
             establish_BranchQueueEntry(cpu);
-            establish_ROBEntry(cpu, loadorstore);
+            updateBISEntry(cpu);
             break;
         }
         case OPCODE_JUMP:
@@ -1322,6 +1325,20 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         case OPCODE_BNZ:
         case OPCODE_BP:
         case OPCODE_BNP:
+        {
+            for(int i = 0; i < BIS_SIZE; i++)
+            {
+            if(cpu->RoB[cpu->ROB_head].bis_index == cpu->BIStack[i].rob_index)
+            {
+                cpu->BIStack[i].established_bit = ADD_ZERO;
+                cpu->BIS_tail = i + 1;
+                cpu->BIS_size--;
+            }
+
+            }
+
+            break;
+        }
         case OPCODE_NOP:
         case OPCODE_HALT:
         case OPCODE_CMP:
@@ -1418,6 +1435,8 @@ APEX_cpu_init(const char *filename)
     cpu->BFU_frwded_tag = -1;
     cpu->BFU_frwded_value = -1;
 
+    cpu->branch_tag = -1;
+
     /* Parse input file and create code memory */
     cpu->code_memory = create_code_memory(filename, &cpu->code_memory_size);
     if (!cpu->code_memory)
@@ -1455,6 +1474,7 @@ APEX_cpu_init(const char *filename)
     initializeIssueQueue(cpu);
     initializeBranchQueue(cpu);
     initializeLSQ(cpu);
+    initializeBIS(cpu);
     initialize_default_btb(cpu);
 
     return cpu;

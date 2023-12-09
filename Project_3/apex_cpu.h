@@ -97,6 +97,7 @@ typedef struct IssueQueue
     int valid_bit;
     CPU_Stage instr;
     int dispatch_time;
+    int branch_tag;
 } IssueQueue;
 
 typedef struct BranchQueue
@@ -122,13 +123,23 @@ typedef struct LoadStoreQueue
     int src_data_valid;
     int src_tag;
     int valueToStore;
+    int branch_tag;
     CPU_Stage instr;
 } LoadStoreQueue;
+
+typedef struct BranchInstructionStack
+{
+    int established_bit;
+    int rob_index;
+    int branch_tag;
+
+} BranchInstructionStack;
 
 typedef struct ReorderBuffer
 {
     int established_bit;
     int lsq_index;
+    int bis_index;
     int prev_renametable_entry;
     CPU_Stage instr;
 } ReorderBuffer;
@@ -168,6 +179,13 @@ typedef struct APEX_CPU
     BranchQueue branchQueue[BRANCH_QUEUE_SIZE];
     int branch_counter;
 
+    BranchInstructionStack BIStack[BIS_SIZE];
+    int BIS_head;
+    int BIS_tail;
+    int BIS_size;
+    int delete_BIS_head;
+    int branch_tag;
+
     int intFU_frwded_tag;
     int intFU_frwded_value;
 
@@ -205,6 +223,7 @@ typedef struct APEX_CPU
     BranchTargetBuffer BTBEntry[BTB_SIZE];
     int btb_full;
     int counter;
+
 
     int mulcycle_counter;
     int mau_cycle_latency;
