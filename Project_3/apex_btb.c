@@ -63,6 +63,7 @@ establish_btb_entry(APEX_CPU *cpu)
                 cpu->BTBEntry[i].branch_pc = cpu->decode_rename1.pc;
                 cpu->BTBEntry[i].recent_outcomes[0] = NOT_TAKEN;
                 cpu->BTBEntry[i].recent_outcomes[1] = NOT_TAKEN;
+                cpu->decode_rename1.stall = TRUE;
             }
 
             cpu->btb_full = FALSE;
@@ -89,6 +90,7 @@ establish_btb_entry_bnz_bp(APEX_CPU *cpu)
                 cpu->BTBEntry[i].branch_pc = cpu->decode_rename1.pc;
                 cpu->BTBEntry[i].recent_outcomes[0] = TAKEN;
                 cpu->BTBEntry[i].recent_outcomes[1] = TAKEN;
+                cpu->decode_rename1.stall = TRUE;
             }
             cpu->btb_full = FALSE;
             break;
@@ -146,9 +148,8 @@ branch_taken_flow(APEX_CPU *cpu)
             {
                 cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
                 cpu->fetch.has_insn = TRUE;
-                cpu->decode_rename1.stall = FALSE;
-
             }
+
             if (!cpu->BTBEntry[i].recent_outcomes[0] && !cpu->BTBEntry[i].recent_outcomes[1])
             {
                 cpu->BTBEntry[i].recent_outcomes[1] = TAKEN;
@@ -179,7 +180,8 @@ branch_not_taken_flow(APEX_CPU *cpu)
             
             if (cpu->execute_BFU.taken)
             {
-                cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
+                cpu->BFU_frwded_pc = cpu->execute_BFU.pc + INCREMENTOR;
+                cpu->fetch.has_insn = TRUE;
             }
             
             if (cpu->BTBEntry[i].recent_outcomes[0] && cpu->BTBEntry[i].recent_outcomes[1])

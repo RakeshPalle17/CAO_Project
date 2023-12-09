@@ -139,7 +139,6 @@ typedef struct ArchitecturalRegisterFiles
     Flags flags;
 }ArchitecturalRegisterFiles;
 
-
 /* Model of APEX CPU */
 typedef struct APEX_CPU
 {
