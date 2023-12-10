@@ -102,12 +102,6 @@ is_LSQ_Full(APEX_CPU *cpu)
     return cpu->LSQ_size == LSQ_SIZE;
 }
 
-// static int
-// is_BIS_Full(APEX_CPU *cpu)
-// {
-//     return cpu->BIS_size == BIS_SIZE;
-// }
-
 static void
 establish_IssueQueueEntry(APEX_CPU *cpu)
 {
@@ -118,7 +112,6 @@ establish_IssueQueueEntry(APEX_CPU *cpu)
             cpu->issueQueue[i].valid_bit = 1;
             cpu->issueQueue[i].dispatch_time = cpu->issue_counter++;
             cpu->issueQueue[i].instr = cpu->issue_queue;
-            cpu->issueQueue[i].branch_tag = cpu->branch_tag;
             break;
         }
     }
@@ -141,16 +134,6 @@ establish_BranchQueueEntry(APEX_CPU *cpu)
     }
 }
 
-// static void
-// establish_BISEntry(APEX_CPU *cpu)
-// {
-//     cpu->BIS_tail = (cpu->BIS_tail + 1) % BIS_SIZE;
-//     cpu->BIStack[cpu->BIS_tail].established_bit = VALID;
-//     cpu->BIStack[cpu->BIS_tail].branch_tag = ++cpu->branch_tag;
-//     cpu->BIS_size++;
-
-// }
-
 static void
 establish_ROBEntry(APEX_CPU *cpu, int loadorstore)
 {
@@ -160,14 +143,12 @@ establish_ROBEntry(APEX_CPU *cpu, int loadorstore)
         cpu->RoB[cpu->ROB_tail].established_bit = VALID;
         cpu->RoB[cpu->ROB_tail].instr = cpu->issue_queue;
         cpu->RoB[cpu->ROB_tail].lsq_index = cpu->LSQ_tail;
-        cpu->RoB[cpu->ROB_tail].branch_tag = cpu->branch_tag;
         cpu->ROB_size++;
     }
     else
     {
         cpu->ROB_tail = (cpu->ROB_tail + 1) % ROB_SIZE;
         cpu->RoB[cpu->ROB_tail].established_bit = VALID;
-        cpu->RoB[cpu->ROB_tail].branch_tag = cpu->branch_tag;
         cpu->RoB[cpu->ROB_tail].instr = cpu->issue_queue;
         cpu->ROB_size++;
     }
@@ -188,7 +169,6 @@ establish_LSQEntry(APEX_CPU *cpu)
         cpu->lsq[cpu->LSQ_tail].memory_address = INVALID;
         cpu->lsq[cpu->LSQ_tail].src_data_valid = VALID;
         cpu->lsq[cpu->LSQ_tail].phyrd = cpu->issue_queue.phyrd;
-        cpu->lsq[cpu->LSQ_tail].branch_tag = cpu->branch_tag;
         cpu->lsq[cpu->LSQ_tail].instr = cpu->issue_queue;
         cpu->LSQ_size++;
         break;
@@ -213,7 +193,6 @@ establish_LSQEntry(APEX_CPU *cpu)
         }
 
         cpu->lsq[cpu->LSQ_tail].src_tag = cpu->issue_queue.phyrs1;
-        cpu->lsq[cpu->LSQ_tail].branch_tag = cpu->branch_tag;
         cpu->lsq[cpu->LSQ_tail].instr = cpu->issue_queue;
         cpu->LSQ_size++;
         break;
@@ -222,30 +201,43 @@ establish_LSQEntry(APEX_CPU *cpu)
 }
 
 static void
-removeIssueQueueEntry(APEX_CPU *cpu)
+addBackToFreePhysicalList(APEX_CPU *cpu, int phyRegister)
 {
-    for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
+    for (int i = 0; i < PHYSICAL_REG_FILE_SIZE; ++i)
     {
-        cpu->issueQueue[i].valid_bit = ADD_ZERO;
-        cpu->issueQueue[i].dispatch_time = ADD_ZERO;
-        cpu->issueQueue[i].instr.pc = ADD_ZERO;
+        if (cpu->freePhysicalRegList[i] == -1)
+        {
+            cpu->freePhysicalRegList[i] = phyRegister;
+            break;
+        }
     }
 }
 
 static void
-removeROBTail(APEX_CPU *cpu)
+removeBranchQueueEntry(APEX_CPU *cpu, int branchPc)
 {
-    while (TRUE)
+    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
     {
-        if (cpu->miss_branch_tag != cpu->RoB[cpu->ROB_tail].instr.pc && cpu->RoB[cpu->ROB_tail].established_bit)
+        if (branchPc == cpu->branchQueue[i].instr.pc)
         {
-            cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
-            cpu->ROB_size--;
-            cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
-            // cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->RoB[i].instr.phyrd;
+            cpu->branchQueue[i].valid_bit = ADD_ZERO;
+            cpu->branchQueue[i].dispatch_time = ADD_ZERO;
+            cpu->branchQueue[i].instr.pc = ADD_ZERO;
+            break;
         }
-        else
+    }
+}
+
+static void
+removeIssueQueueEntry(APEX_CPU *cpu, int instrPc)
+{
+    for (int i = 0; i < ISSUE_QUEUE_SIZE; ++i)
+    {
+        if (instrPc == cpu->issueQueue[i].instr.pc)
         {
+            cpu->issueQueue[i].valid_bit = ADD_ZERO;
+            cpu->issueQueue[i].dispatch_time = ADD_ZERO;
+            cpu->issueQueue[i].instr.pc = ADD_ZERO;
             break;
         }
     }
@@ -254,42 +246,166 @@ removeROBTail(APEX_CPU *cpu)
 static void
 removeLSQTail(APEX_CPU *cpu)
 {
+    cpu->lsq[cpu->RoB[cpu->ROB_tail].lsq_index].established_bit = INVALID;
+    cpu->lsq[cpu->RoB[cpu->ROB_tail].lsq_index].memory_address_valid = INVALID;
+    cpu->LSQ_size--;
+    cpu->LSQ_tail = (cpu->LSQ_tail - 1) % LSQ_SIZE;
+}
 
+static void
+removeROBTail(APEX_CPU *cpu)
+{
     while (TRUE)
     {
-        if (cpu->miss_branch_tag != cpu->lsq[cpu->LSQ_tail].instr.pc && cpu->lsq[cpu->LSQ_tail].established_bit)
+        if (cpu->ROB_size != 0 && cpu->miss_branch_tag != cpu->RoB[cpu->ROB_tail].instr.pc && cpu->RoB[cpu->ROB_tail].established_bit)
         {
+            switch (cpu->RoB[cpu->ROB_tail].instr.opcode)
+            {
+            case OPCODE_ADD:
+            case OPCODE_SUB:
+            case OPCODE_MUL:
+            case OPCODE_AND:
+            case OPCODE_OR:
+            case OPCODE_XOR:
+            case OPCODE_ADDL:
+            case OPCODE_SUBL:
+            {
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
 
-            cpu->lsq[cpu->LSQ_tail].established_bit = INVALID;
-            cpu->LSQ_size--;
-            cpu->LSQ_tail = (cpu->LSQ_tail - 1) % LSQ_SIZE;
+                addBackToFreePhysicalList(cpu, cpu->RoB[cpu->ROB_tail].instr.phyrd);
+                addBackToFreeCCList(cpu, cpu->RoB[cpu->ROB_tail].instr.prev_cc);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rd] = cpu->RoB[cpu->ROB_tail].instr.prev_pd;
+                cpu->renameTable[REG_FILE_SIZE - 1] = cpu->RoB[cpu->ROB_tail].instr.prev_cc;
+
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+
+            case OPCODE_MOVC:
+            {
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+
+                addBackToFreePhysicalList(cpu, cpu->RoB[cpu->ROB_tail].instr.phyrd);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rd] = cpu->RoB[cpu->ROB_tail].instr.prev_pd;
+
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+            case OPCODE_LOAD:
+            {
+
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+
+                addBackToFreePhysicalList(cpu, cpu->RoB[cpu->ROB_tail].instr.phyrd);
+                removeLSQTail(cpu);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rd] = cpu->RoB[cpu->ROB_tail].instr.prev_pd;
+
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+
+            case OPCODE_LOADP:
+            {
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+
+                addBackToFreePhysicalList(cpu, cpu->RoB[cpu->ROB_tail].instr.phyrd);
+                addBackToFreePhysicalList(cpu, cpu->RoB[cpu->ROB_tail].instr.phyrs3);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                removeLSQTail(cpu);
+
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rd] = cpu->RoB[cpu->ROB_tail].instr.prev_pd;
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rs1] = cpu->RoB[cpu->ROB_tail].instr.prev_prs;
+
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+            case OPCODE_STOREP:
+            {
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrs3);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                removeLSQTail(cpu);
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rs2] = cpu->RoB[cpu->ROB_tail].instr.prev_prs;
+
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+            case OPCODE_STORE:
+            {
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                removeLSQTail(cpu);
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+            case OPCODE_CML:
+            case OPCODE_CMP:
+            {
+                addBackToFreeCCList(cpu, cpu->RoB[cpu->ROB_tail].instr.prev_cc);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+
+            case OPCODE_NOP:
+            case OPCODE_HALT:
+            {
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+
+            case OPCODE_BNZ:
+            case OPCODE_BP:
+            case OPCODE_BZ:
+            case OPCODE_BNP:
+            case OPCODE_JUMP:
+            {
+                removeBranchQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+
+            case OPCODE_JALR:
+            {
+                cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+
+                removeBranchQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                removeIssueQueueEntry(cpu, cpu->RoB[cpu->ROB_tail].instr.pc);
+                addBackToFreePhysicalList(cpu, cpu->RoB[cpu->ROB_tail].instr.phyrd);
+
+                cpu->renameTable[cpu->RoB[cpu->ROB_tail].instr.rd] = cpu->RoB[cpu->ROB_tail].instr.prev_pd;
+
+                cpu->ROB_size--;
+                cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+                break;
+            }
+            }
         }
         else
         {
             break;
         }
-    }
-}
-
-// static void
-// updateROBEntry(APEX_CPU *cpu)
-// {
-//     cpu->RoB[cpu->ROB_tail].bis_index = cpu->BIS_tail;
-// }
-
-// static void
-// updateBISEntry(APEX_CPU *cpu)
-// {
-//     cpu->BIStack[cpu->BIS_tail].rob_index = cpu->ROB_tail;
-// }
-
-static void
-removeBranchQueueEntry(APEX_CPU *cpu)
-{
-    for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
-    {
-        cpu->branchQueue[i].valid_bit = ADD_ZERO;
-        cpu->branchQueue[i].dispatch_time = ADD_ZERO;
-        cpu->branchQueue[i].instr.pc = ADD_ZERO;
     }
 }

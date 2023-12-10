@@ -1,8 +1,6 @@
 /*
  * main.c
  *
- * Author:
- * Copyright (c) 2020, Gaurav Kothari (gkothar1@binghamton.edu)
  * State University of New York at Binghamton
  */
 #include <stdio.h>

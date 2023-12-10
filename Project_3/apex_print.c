@@ -241,7 +241,7 @@ print_forwarding_tags(APEX_CPU *cpu)
 
     if (cpu->intFu_frwded_ccTag != -1)
     {
-        printf("\nCC-Tag: cp%d ", cpu->intFu_frwded_ccTag);
+        printf("\nCC Forwarding-Tag: cp%d ", cpu->intFu_frwded_ccTag);
     }
 }
 
@@ -270,19 +270,20 @@ print_reg_file(const APEX_CPU *cpu)
 
     printf("\n----------\n%s\n----------\n", "Registers:");
 
-    for (int i = 0; i < REG_FILE_SIZE / 2; ++i)
+    for (int i = 0; i <= REG_FILE_SIZE / 2; ++i)
     {
         printf("R%-3d[%-3d] ", i, cpu->regs[i].value);
     }
 
     printf("\n");
 
-    for (i = (REG_FILE_SIZE / 2); i < REG_FILE_SIZE - 1; ++i)
+    for (i = (REG_FILE_SIZE / 2) + 1; i < REG_FILE_SIZE - 2; ++i)
     {
         printf("R%-3d[%-3d] ", i, cpu->regs[i].value);
     }
 
     printf("R%-3d[Z = %-3d, P = %-d] ", 17, cpu->regs[i].flags.zero, cpu->regs[i].flags.positive);
+    printf("R%-3d[%-3d] ", 18, cpu->regs[i+1].value);
 
     printf("\n");
 }

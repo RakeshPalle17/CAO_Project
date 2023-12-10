@@ -262,7 +262,7 @@ update_physical_register_file(APEX_CPU *cpu)
         cpu->physicalRegFile[cpu->MulFU_frwded_tag].data_field = cpu->MulFU_frwded_value;
         cpu->physicalRegFile[cpu->MulFU_frwded_tag].valid_bit = VALID;
         cpu->MulFU_frwded_tag = -1;
-        }
+    }
 
     if (cpu->AFU_frwded_tag != -1)
     {
@@ -283,29 +283,5 @@ update_physical_register_file(APEX_CPU *cpu)
         cpu->physicalRegFile[cpu->BFU_frwded_tag].data_field = cpu->BFU_frwded_value;
         cpu->physicalRegFile[cpu->BFU_frwded_tag].valid_bit = VALID;
         cpu->BFU_frwded_tag = -1;
-    }
-}
-
-
-
-static void
-update_CCphysical_register_file(APEX_CPU *cpu)
-{
-    if (cpu->intFu_frwded_ccTag != -1)
-    {
-        if(cpu->intFu_frwded_ccValue)
-        {
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.positive = cpu->intFu_frwded_ccValue;
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = ADD_ZERO;
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
-        cpu->intFu_frwded_ccTag = -1;
-        }
-        else
-        {
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.positive = cpu->intFu_frwded_ccValue;
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].flag.zero = VALID;
-        cpu->ccRegFile[cpu->intFu_frwded_ccTag].valid_bit = VALID;
-        cpu->intFu_frwded_ccTag = -1;
-        }
     }
 }

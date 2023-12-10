@@ -2,9 +2,6 @@
  * apex_cpu.h
  * Contains APEX cpu pipeline declarations
  *
- * Author:
- * Copyright (c) 2020, Gaurav Kothari (gkothar1@binghamton.edu)
- * State University of New York at Binghamton
  */
 #ifndef _APEX_CPU_H_
 #define _APEX_CPU_H_
@@ -42,6 +39,8 @@ typedef struct CPU_Stage
     int btb_hit;
     int taken;
 
+    int prev_pd;
+    int prev_prs;
     int phyrs1;
     int phyrs2;
     int phyrs3;
@@ -54,6 +53,8 @@ typedef struct CPU_Stage
     int phyrs1_value;
     int phyrs2_value;
     int phyrs3_value;
+
+    int prev_cc;
 
     int flag;
     int target_address;
@@ -77,9 +78,9 @@ typedef struct PhysicalRegistrationFile
 
 typedef struct Flags
 {
-   int zero;
-   int positive;
-}Flags;
+    int zero;
+    int positive;
+} Flags;
 
 typedef struct CCRegistrationFile
 {
@@ -123,7 +124,6 @@ typedef struct LoadStoreQueue
     int src_data_valid;
     int src_tag;
     int valueToStore;
-    int branch_tag;
     CPU_Stage instr;
 } LoadStoreQueue;
 
@@ -148,20 +148,20 @@ typedef struct ArchitecturalRegisterFiles
 {
     int value;
     Flags flags;
-}ArchitecturalRegisterFiles;
+} ArchitecturalRegisterFiles;
 
 /* Model of APEX CPU */
 typedef struct APEX_CPU
 {
-    int pc;                            /* Current program counter */
-    int clock;                         /* Clock cycles elapsed */
-    int insn_completed;                /* Instructions retired */
-    ArchitecturalRegisterFiles regs[REG_FILE_SIZE];/* Integer register file */
-    int code_memory_size;              /* Number of instruction in the input file */
-    APEX_Instruction *code_memory;     /* Code Memory */
-    int data_memory[DATA_MEMORY_SIZE]; /* Data Memory */
-    int single_step;                   /* Wait for user input after every cycle */
-    int zero_flag;                     /* {TRUE, FALSE} Used by BZ and BNZ to branch */
+    int pc;                                         /* Current program counter */
+    int clock;                                      /* Clock cycles elapsed */
+    int insn_completed;                             /* Instructions retired */
+    ArchitecturalRegisterFiles regs[REG_FILE_SIZE]; /* Integer register file */
+    int code_memory_size;                           /* Number of instruction in the input file */
+    APEX_Instruction *code_memory;                  /* Code Memory */
+    int data_memory[DATA_MEMORY_SIZE];              /* Data Memory */
+    int single_step;                                /* Wait for user input after every cycle */
+    int zero_flag;                                  /* {TRUE, FALSE} Used by BZ and BNZ to branch */
     int p_flag;
     int fetch_from_next_cycle;
 
@@ -170,6 +170,7 @@ typedef struct APEX_CPU
 
     CCRegistrationFile ccRegFile[CC_REG_FILE_SIZE];
     int freeCCFlagsRegList[CC_REG_FILE_SIZE];
+    Flags CCHead;
 
     int renameTable[REG_FILE_SIZE];
 
@@ -184,27 +185,26 @@ typedef struct APEX_CPU
     int BIS_tail;
     int BIS_size;
     int delete_BIS_head;
-    int branch_tag;
     int miss_branch_tag;
 
     int intFU_frwded_tag;
     int intFU_frwded_value;
-
     int intFu_frwded_ccTag;
     int intFu_frwded_ccValue;
 
+    int MulFu_frwded_ccTag;
+    int MUlFu_frwded_ccValue;
     int MulFU_frwded_tag;
     int MulFU_frwded_value;
 
     int AFU_frwded_tag;
     int AFU_frwded_value;
-
     int AFU_frwded_address;
     int AFU_frwded_pc;
 
     int MAU_frwded_tag;
     int MAU_frwded_value;
-    
+
     int BFU_frwded_pc;
     int BFU_frwded_tag;
     int BFU_frwded_value;
@@ -224,7 +224,6 @@ typedef struct APEX_CPU
     BranchTargetBuffer BTBEntry[BTB_SIZE];
     int btb_full;
     int counter;
-
 
     int mulcycle_counter;
     int mau_cycle_latency;

@@ -4,6 +4,7 @@
 
 #include "apex_cpu.h"
 #include "apex_macros.h"
+#include "apex_flags.c"
 #include "apex_sources.c"
 #include "apex_issue.c"
 #include "apex_print.c"
@@ -37,28 +38,9 @@ headof_free_physicalRegisters(APEX_CPU *cpu)
         {
             cpu->freePhysicalRegList[i] = cpu->freePhysicalRegList[i + 1];
         }
+
         cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = -1;
-        return head;
-    }
-    else
-    {
-        return -1;
-    }
-}
 
-/* get Free physical register from head of free list */
-static int
-headof_free_CCRegisters(APEX_CPU *cpu)
-{
-    if (cpu->freeCCFlagsRegList[0] != -1)
-    {
-        int head = cpu->freeCCFlagsRegList[0];
-
-        for (int i = 0; i < CC_REG_FILE_SIZE - 1; ++i)
-        {
-            cpu->freeCCFlagsRegList[i] = cpu->freeCCFlagsRegList[i + 1];
-        }
-        cpu->freeCCFlagsRegList[CC_REG_FILE_SIZE - 1] = -1;
         return head;
     }
     else
@@ -88,15 +70,6 @@ initializePhysicalRegistersFile(APEX_CPU *cpu)
     {
         cpu->physicalRegFile[i].valid_bit = INVALID;
         cpu->physicalRegFile[i].data_field = INVALID;
-    }
-}
-
-static void
-initializeCCRegistersFile(APEX_CPU *cpu)
-{
-    for (int i = 0; i < CC_REG_FILE_SIZE; ++i)
-    {
-        cpu->ccRegFile[i].valid_bit = INVALID;
     }
 }
 
@@ -183,6 +156,10 @@ APEX_fetch(APEX_CPU *cpu)
             cpu->decode_rename1.has_insn = FALSE;
             cpu->rename2_dispatch.has_insn = FALSE;
             cpu->issue_queue.has_insn = FALSE;
+            cpu->execute_AFU.has_insn = FALSE;
+            cpu->execute_BFU.has_insn = FALSE;
+            cpu->execute_IntFU.has_insn = FALSE;
+            cpu->execute_MulFU.has_insn = FALSE;
 
             cpu->decode_rename1.stall = FALSE;
             cpu->rename2_dispatch.stall = FALSE;
@@ -193,9 +170,6 @@ APEX_fetch(APEX_CPU *cpu)
             if (cpu->miss_branch_tag != -1)
             {
                 removeROBTail(cpu);
-                removeLSQTail(cpu);
-                removeIssueQueueEntry(cpu);
-                removeBranchQueueEntry(cpu);
             }
 
             cpu->miss_branch_tag = -1;
@@ -241,6 +215,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             set_decode_physical_source1(cpu);
             set_decode_physical_source2(cpu);
 
+            cpu->decode_rename1.prev_pd = cpu->renameTable[cpu->decode_rename1.rd];
+
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
             if (headOfFreePhyRegister != -1)
@@ -253,6 +229,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             {
                 cpu->decode_rename1.stall = TRUE;
             }
+
+            cpu->decode_rename1.prev_cc = cpu->renameTable[REG_FILE_SIZE - 1];
 
             int head = headof_free_CCRegisters(cpu);
             cpu->renameTable[REG_FILE_SIZE - 1] = head;
@@ -268,6 +246,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
             set_decode_physical_source1(cpu);
 
+            cpu->decode_rename1.prev_pd = cpu->renameTable[cpu->decode_rename1.rd];
+
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
             if (headOfFreePhyRegister != -1)
@@ -281,6 +261,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
                 cpu->decode_rename1.stall = TRUE;
             }
 
+            cpu->decode_rename1.prev_cc = cpu->renameTable[REG_FILE_SIZE - 1];
+
             int head = headof_free_CCRegisters(cpu);
             cpu->renameTable[REG_FILE_SIZE - 1] = head;
             cpu->decode_rename1.flag = head;
@@ -293,6 +275,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
         {
             cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
             set_decode_physical_source1(cpu);
+
+            cpu->decode_rename1.prev_pd = cpu->renameTable[cpu->decode_rename1.rd];
 
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
             if (headOfFreePhyRegister != -1)
@@ -312,6 +296,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
         {
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
+            cpu->decode_rename1.prev_pd = cpu->renameTable[cpu->decode_rename1.rd];
+
             if (headOfFreePhyRegister != -1)
             {
                 cpu->renameTable[cpu->decode_rename1.rd] = headOfFreePhyRegister;
@@ -330,6 +316,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
             set_decode_physical_source1(cpu);
 
+            cpu->decode_rename1.prev_pd = cpu->renameTable[cpu->decode_rename1.rd];
+
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
             if (headOfFreePhyRegister != -1)
@@ -342,6 +330,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             {
                 cpu->decode_rename1.stall = TRUE;
             }
+
+            cpu->decode_rename1.prev_prs = cpu->renameTable[cpu->decode_rename1.rs1];
 
             headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
@@ -376,6 +366,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             set_decode_physical_source1(cpu);
             set_decode_physical_source2(cpu);
 
+            cpu->decode_rename1.prev_prs = cpu->renameTable[cpu->decode_rename1.rs2];
+
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
             cpu->renameTable[cpu->decode_rename1.rs2] = headOfFreePhyRegister;
             cpu->decode_rename1.phyrs3 = headOfFreePhyRegister;
@@ -392,6 +384,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             set_decode_physical_source1(cpu);
             set_decode_physical_source2(cpu);
 
+            cpu->decode_rename1.prev_cc = cpu->renameTable[REG_FILE_SIZE - 1];
+
             int head = headof_free_CCRegisters(cpu);
             cpu->renameTable[REG_FILE_SIZE - 1] = head;
             cpu->decode_rename1.flag = head;
@@ -405,6 +399,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
             cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
             set_decode_physical_source1(cpu);
 
+            cpu->decode_rename1.prev_cc = cpu->renameTable[REG_FILE_SIZE - 1];
+
             int head = headof_free_CCRegisters(cpu);
             cpu->renameTable[REG_FILE_SIZE - 1] = head;
             cpu->decode_rename1.flag = head;
@@ -417,6 +413,8 @@ APEX_decode_rename1(APEX_CPU *cpu)
         {
             cpu->decode_rename1.phyrs1 = cpu->renameTable[cpu->decode_rename1.rs1];
             set_decode_physical_source1(cpu);
+
+            cpu->decode_rename1.prev_pd = cpu->renameTable[cpu->decode_rename1.rd];
 
             int headOfFreePhyRegister = headof_free_physicalRegisters(cpu);
 
@@ -852,7 +850,7 @@ APEX_execute_IntFU(APEX_CPU *cpu)
         {
             break;
         }
-        
+
         case OPCODE_HALT:
         {
             cpu->HALT = TRUE;
@@ -889,7 +887,7 @@ APEX_execute_MulFU(APEX_CPU *cpu)
             cpu->MulFU_frwded_tag = cpu->execute_MulFU.phyrd;
             cpu->MulFU_frwded_value = cpu->execute_MulFU.phyrs1_value * cpu->execute_MulFU.phyrs2_value;
 
-            set_flag_values(cpu);
+            set_flag_values_mul(cpu);
 
             cpu->execute_MulFU.has_insn = FALSE;
         }
@@ -1002,11 +1000,11 @@ static void
 APEX_execute_MAU(APEX_CPU *cpu)
 {
 
-    if (cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head)
+    if (cpu->RoB[cpu->ROB_head].instr.pc == cpu->lsq[cpu->LSQ_head].instr.pc)
     {
         if (cpu->lsq[cpu->LSQ_head].instr.pc != cpu->execute_MAU.pc)
         {
-            if (cpu->lsq[cpu->LSQ_head].memory_address_valid)
+            if (cpu->lsq[cpu->LSQ_head].memory_address_valid && cpu->lsq[cpu->LSQ_head].established_bit)
             {
                 cpu->execute_MAU = cpu->lsq[cpu->LSQ_head].instr;
                 cpu->mau_cycle_latency = 2;
@@ -1066,7 +1064,7 @@ APEX_execute_BFU(APEX_CPU *cpu)
         {
         case OPCODE_BZ:
         {
-            if (cpu->regs[REG_FILE_SIZE - 1].flags.zero)
+            if (cpu->CCHead.zero)
             {
                 branch_taken_flow(cpu);
             }
@@ -1078,7 +1076,7 @@ APEX_execute_BFU(APEX_CPU *cpu)
         }
         case OPCODE_BNZ:
         {
-            if (!cpu->regs[REG_FILE_SIZE - 1].flags.zero)
+            if (!cpu->CCHead.zero)
             {
 
                 branch_taken_flow(cpu);
@@ -1091,7 +1089,7 @@ APEX_execute_BFU(APEX_CPU *cpu)
         }
         case OPCODE_BP:
         {
-            if (cpu->regs[REG_FILE_SIZE - 1].flags.positive)
+            if (cpu->CCHead.positive)
             {
                 branch_taken_flow(cpu);
             }
@@ -1103,7 +1101,7 @@ APEX_execute_BFU(APEX_CPU *cpu)
         }
         case OPCODE_BNP:
         {
-            if (!cpu->regs[REG_FILE_SIZE - 1].flags.positive)
+            if (!cpu->CCHead.positive)
             {
                 branch_taken_flow(cpu);
             }
@@ -1117,12 +1115,14 @@ APEX_execute_BFU(APEX_CPU *cpu)
         case OPCODE_JUMP:
         {
             cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
+            cpu->miss_branch_tag = cpu->execute_BFU.pc;
 
             break;
         }
         case OPCODE_JALR:
         {
             cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
+            cpu->miss_branch_tag = cpu->execute_BFU.pc;
 
             cpu->BFU_frwded_tag = cpu->execute_BFU.phyrd;
             cpu->BFU_frwded_value = cpu->execute_BFU.pc + INCREMENTOR;
@@ -1133,7 +1133,7 @@ APEX_execute_BFU(APEX_CPU *cpu)
 
         cpu->execute_BFU.has_insn = FALSE;
 
-        removeBranchQueueEntry(cpu);
+        removeBranchQueueEntry(cpu, cpu->execute_BFU.pc);
 
         if (ENABLE_DEBUG_MESSAGES)
         {
@@ -1160,22 +1160,41 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 {
     if (cpu->delete_ROB_head)
     {
-        cpu->RoB[cpu->ROB_head].established_bit = INVALID;
-        cpu->ROB_head = (cpu->ROB_head + 1) % ROB_SIZE;
+        for (int i = cpu->ROB_head; i < cpu->ROB_tail; i++)
+        {
+            cpu->RoB[i] = cpu->RoB[i + 1];
+        }
+
+        cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+        cpu->RoB[cpu->ROB_tail].lsq_index = INVALID;
+        cpu->RoB[cpu->ROB_tail].instr.pc = ADD_ZERO;
+
+        cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
         cpu->ROB_size--;
         cpu->delete_ROB_head = ADD_ZERO;
     }
 
     if (cpu->delete_LSQ_head)
     {
-        cpu->lsq[cpu->LSQ_head].src_data_valid = INVALID;
-        cpu->lsq[cpu->LSQ_head].established_bit = INVALID;
-        cpu->LSQ_head = (cpu->LSQ_head + 1) % LSQ_SIZE;
+
+        for (int i = cpu->LSQ_head; i < cpu->LSQ_tail; i++)
+        {
+            cpu->lsq[i] = cpu->lsq[i + 1];
+        }
+
+        cpu->lsq[cpu->LSQ_tail].src_data_valid = INVALID;
+        cpu->lsq[cpu->LSQ_tail].established_bit = INVALID;
+        cpu->lsq[cpu->LSQ_tail].instr.pc = ADD_ZERO;
+
+        cpu->LSQ_tail = (cpu->LSQ_tail - 1) % LSQ_SIZE;
         cpu->LSQ_size--;
         cpu->delete_LSQ_head = ADD_ZERO;
     }
 
-    cpu->commit_ARF = cpu->RoB[cpu->ROB_head].instr;
+    if (cpu->RoB[cpu->ROB_head].established_bit)
+    {
+        cpu->commit_ARF = cpu->RoB[cpu->ROB_head].instr;
+    }
 
     if (cpu->commit_ARF.has_insn)
     {
@@ -1195,15 +1214,16 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->ccRegFile[cpu->commit_ARF.flag].valid_bit)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
-                cpu->regs[REG_FILE_SIZE - 1].flags = cpu->ccRegFile[cpu->commit_ARF.flag].flag;
+                cpu->regs[REG_FILE_SIZE - 2].flags = cpu->ccRegFile[cpu->commit_ARF.flag].flag;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
 
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrd;
-                cpu->freeCCFlagsRegList[CC_REG_FILE_SIZE - 1] = cpu->commit_ARF.flag;
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrd);
+                addBackToFreeCCList(cpu, cpu->commit_ARF.flag);
 
                 cpu->delete_ROB_head = 1;
             }
@@ -1214,13 +1234,15 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
 
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrd;
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrd);
+
                 cpu->delete_ROB_head = 1;
             }
             break;
@@ -1228,9 +1250,10 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_LOAD:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->stored_in_memory)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->RoB[cpu->ROB_head].instr.pc == cpu->lsq[cpu->LSQ_head].instr.pc && cpu->stored_in_memory)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
@@ -1238,7 +1261,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
 
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrd;
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrd);
 
                 cpu->delete_ROB_head = 1;
                 cpu->delete_LSQ_head = 1;
@@ -1249,18 +1272,19 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_LOADP:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->stored_in_memory)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit && cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].instr.pc == cpu->lsq[cpu->LSQ_head].instr.pc && cpu->stored_in_memory)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
                 cpu->regs[cpu->commit_ARF.rs1].value = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
 
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 2] = cpu->commit_ARF.phyrd;
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrs3;
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrd);
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrs3);
 
                 cpu->delete_ROB_head = 1;
                 cpu->delete_LSQ_head = 1;
@@ -1271,16 +1295,17 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_STOREP:
         {
-            if (cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->stored_in_memory)
+            if (cpu->physicalRegFile[cpu->commit_ARF.phyrs3].valid_bit && cpu->RoB[cpu->ROB_head].instr.pc == cpu->lsq[cpu->LSQ_head].instr.pc && cpu->stored_in_memory)
             {
                 cpu->regs[cpu->commit_ARF.rs2].value = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
 
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrd;
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrs3);
 
                 cpu->delete_ROB_head = 1;
                 cpu->delete_LSQ_head = 1;
@@ -1291,8 +1316,9 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
 
         case OPCODE_STORE:
         {
-            if (cpu->RoB[cpu->ROB_head].lsq_index == cpu->LSQ_head && cpu->stored_in_memory)
+            if (cpu->RoB[cpu->ROB_head].instr.pc == cpu->lsq[cpu->LSQ_head].instr.pc && cpu->stored_in_memory)
             {
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
                 cpu->delete_ROB_head = 1;
                 cpu->delete_LSQ_head = 1;
                 cpu->stored_in_memory = FALSE;
@@ -1305,13 +1331,14 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             if (cpu->physicalRegFile[cpu->commit_ARF.phyrd].valid_bit)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
 
                 if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
 
-                cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->commit_ARF.phyrd;
+                addBackToFreePhysicalList(cpu, cpu->commit_ARF.phyrd);
 
                 cpu->delete_ROB_head = 1;
             }
@@ -1322,8 +1349,10 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         {
             if (cpu->ccRegFile[cpu->commit_ARF.flag].valid_bit)
             {
-                cpu->regs[REG_FILE_SIZE - 1].flags = cpu->ccRegFile[cpu->commit_ARF.flag].flag;
-                cpu->freeCCFlagsRegList[CC_REG_FILE_SIZE - 1] = cpu->commit_ARF.flag;
+                cpu->regs[REG_FILE_SIZE - 2].flags = cpu->ccRegFile[cpu->commit_ARF.flag].flag;
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
+
+                addBackToFreeCCList(cpu, cpu->commit_ARF.flag);
 
                 cpu->delete_ROB_head = 1;
             }
@@ -1334,21 +1363,15 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         case OPCODE_BP:
         case OPCODE_BNP:
         {
+            cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
             cpu->delete_ROB_head = 1;
-
-            // if (cpu->RoB[cpu->ROB_head].branch_tag == cpu->BIStack[cpu->BIS_head].branch_tag)
-            // {
-            //     cpu->BIStack[cpu->BIS_head].established_bit = INVALID;
-            //     cpu->BIS_head = (cpu->BIS_head + 1) % BIS_SIZE;
-            //     cpu->BIS_size--;
-            // }
-
             break;
         }
         case OPCODE_NOP:
         case OPCODE_CMP:
         case OPCODE_JUMP:
         {
+            cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
             cpu->delete_ROB_head = 1;
             break;
         }
@@ -1357,28 +1380,16 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         {
             if (cpu->HALT)
             {
+                cpu->regs[REG_FILE_SIZE - 1].value = cpu->commit_ARF.pc;
                 cpu->HALT = FALSE;
                 print_ROB(cpu);
                 return TRUE;
             }
         }
-        
         }
 
         cpu->commit_ARF.has_insn = FALSE;
         cpu->insn_completed++;
-
-        if (ENABLE_DEBUG_MESSAGES)
-        {
-            print_stage_content("commit_ARF", &cpu->commit_ARF);
-        }
-    }
-    else
-    {
-        if (ENABLE_DEBUG_MESSAGES)
-        {
-            printf("%-17s:\n", "commit_ARF");
-        }
     }
 
     update_physical_register_file(cpu);
@@ -1419,6 +1430,7 @@ APEX_cpu_init(const char *filename)
     cpu->clock = 1;
 
     cpu->issue_counter = ADD_ZERO;
+    cpu->branch_counter = ADD_ZERO;
 
     cpu->delete_ROB_head = ADD_ZERO;
     cpu->delete_LSQ_head = ADD_ZERO;
@@ -1426,14 +1438,16 @@ APEX_cpu_init(const char *filename)
     cpu->stored_in_memory = ADD_ZERO;
     cpu->HALT = ADD_ZERO;
 
+    /*forwarding buses*/
     cpu->intFU_frwded_tag = -1;
     cpu->intFU_frwded_value = -1;
-
     cpu->intFu_frwded_ccTag = -1;
     cpu->intFu_frwded_ccValue = -1;
 
     cpu->MulFU_frwded_tag = -1;
     cpu->MulFU_frwded_value = -1;
+    cpu->MulFu_frwded_ccTag = -1;
+    cpu->MUlFu_frwded_ccValue = -1;
 
     cpu->AFU_frwded_tag = -1;
     cpu->AFU_frwded_value = -1;
@@ -1446,7 +1460,6 @@ APEX_cpu_init(const char *filename)
     cpu->BFU_frwded_tag = -1;
     cpu->BFU_frwded_value = -1;
 
-    cpu->branch_tag = -1;
     cpu->miss_branch_tag = -1;
 
     /* Parse input file and create code memory */
@@ -1512,7 +1525,6 @@ void APEX_cpu_run(APEX_CPU *cpu)
 
         if (APEX_commit_to_ARF(cpu) || cpu->num_of_cycles_to_run == cpu->clock)
         {
-            // print_BTB(cpu);
             print_forwarding_tags(cpu);
             print_CCPhysicalRegisters_file(cpu);
             print_memory_address_values(cpu);
@@ -1532,7 +1544,6 @@ void APEX_cpu_run(APEX_CPU *cpu)
         APEX_decode_rename1(cpu);
         APEX_fetch(cpu);
 
-        // print_BTB(cpu);
         print_forwarding_tags(cpu);
         print_CCPhysicalRegisters_file(cpu);
         print_memory_address_values(cpu);

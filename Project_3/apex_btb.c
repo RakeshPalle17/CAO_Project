@@ -103,38 +103,6 @@ establish_btb_entry_bnz_bp(APEX_CPU *cpu)
     }
 }
 
-
-static void
-set_flag_values(APEX_CPU *cpu)
-{
-    if (cpu->intFU_frwded_value == 0)
-    {
-        cpu->intFu_frwded_ccTag = cpu->execute_IntFU.flag;
-        cpu->intFu_frwded_ccValue = ZERO_FLAG;
-    }
-    else
-    {
-        cpu->intFu_frwded_ccTag = cpu->execute_IntFU.flag;
-        cpu->intFu_frwded_ccValue = POSITIVE_FLAG;
-    }
-}
-
-static void
-set_flag_values_cmpAndcml(APEX_CPU *cpu)
-{
-    if (cpu->compare_value == 0)
-    {
-        cpu->intFu_frwded_ccTag = cpu->execute_IntFU.flag;
-        cpu->intFu_frwded_ccValue = ZERO_FLAG;
-    }
-    else
-    {
-        cpu->intFu_frwded_ccTag = cpu->execute_IntFU.flag;
-        cpu->intFu_frwded_ccValue = POSITIVE_FLAG;
-    }
-}
-
-
 static void
 branch_taken_flow(APEX_CPU *cpu)
 {
@@ -143,7 +111,7 @@ branch_taken_flow(APEX_CPU *cpu)
         if (cpu->execute_BFU.pc == cpu->BTBEntry[i].branch_pc)
         {
             cpu->BTBEntry[i].target_pc = cpu->execute_BFU.target_address;
-            
+
             if (!cpu->execute_BFU.taken)
             {
                 cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
@@ -178,14 +146,14 @@ branch_not_taken_flow(APEX_CPU *cpu)
         if (cpu->execute_BFU.pc == cpu->BTBEntry[i].branch_pc)
         {
             cpu->BTBEntry[i].target_pc = cpu->execute_BFU.target_address;
-            
+
             if (cpu->execute_BFU.taken)
             {
                 cpu->BFU_frwded_pc = cpu->execute_BFU.pc + INCREMENTOR;
                 cpu->miss_branch_tag = cpu->execute_BFU.pc;
                 cpu->fetch.has_insn = TRUE;
             }
-            
+
             if (cpu->BTBEntry[i].recent_outcomes[0] && cpu->BTBEntry[i].recent_outcomes[1])
             {
                 cpu->BTBEntry[i].recent_outcomes[1] = NOT_TAKEN;

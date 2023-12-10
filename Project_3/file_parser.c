@@ -3,9 +3,6 @@
  * Contains functions to parse input file and create code memory, you can edit
  * this file to add new instructions
  *
- * Author:
- * Copyright (c) 2020, Gaurav Kothari (gkothar1@binghamton.edu)
- * State University of New York at Binghamton
  */
 #include <assert.h>
 #include <stdio.h>

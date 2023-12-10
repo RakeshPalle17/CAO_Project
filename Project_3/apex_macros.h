@@ -2,9 +2,6 @@
  * apex_macros.h
  * Contains APEX cpu pipeline macros
  *
- * Author:
- * Copyright (c) 2020, Gaurav Kothari (gkothar1@binghamton.edu)
- * State University of New York at Binghamton
  */
 #ifndef _MACROS_H_
 #define _MACROS_H_
@@ -16,7 +13,7 @@
 #define DATA_MEMORY_SIZE 4096
 
 /* Size of integer register file */
-#define REG_FILE_SIZE 18
+#define REG_FILE_SIZE 19
 
 #define PHYSICAL_REG_FILE_SIZE 25
 
@@ -52,7 +49,6 @@
 
 #define ZERO_FLAG 0
 #define POSITIVE_FLAG 1
-
 
 /* Numeric OPCODE identifiers for instructions */
 #define OPCODE_ADD 0x0

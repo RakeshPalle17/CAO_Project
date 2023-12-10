@@ -209,7 +209,6 @@ issueWakeupAFUInstructionFromIQ(APEX_CPU *cpu)
     }
 }
 
-
 static void
 updateBranchQueue(APEX_CPU *cpu)
 {
@@ -222,8 +221,7 @@ updateBranchQueue(APEX_CPU *cpu)
         case OPCODE_BP:
         case OPCODE_BNP:
         {
-            if (cpu->branchQueue[i].valid_bit && cpu->AFU_frwded_address != -1 
-            && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc && !cpu->branchQueue[i].instr.target_address_valid)
+            if (cpu->branchQueue[i].valid_bit && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc && !cpu->branchQueue[i].instr.target_address_valid)
             {
                 cpu->branchQueue[i].instr.target_address = cpu->AFU_frwded_address;
                 cpu->branchQueue[i].instr.target_address_valid = VALID;
@@ -234,22 +232,19 @@ updateBranchQueue(APEX_CPU *cpu)
         case OPCODE_JUMP:
         case OPCODE_JALR:
         {
-            if (cpu->branchQueue[i].valid_bit && cpu->AFU_frwded_address != -1 
-             && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc && !cpu->branchQueue[i].instr.target_address_valid)
+            if (cpu->branchQueue[i].valid_bit && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->branchQueue[i].instr.pc && !cpu->branchQueue[i].instr.target_address_valid)
             {
                 cpu->branchQueue[i].instr.target_address = cpu->AFU_frwded_address;
                 cpu->branchQueue[i].instr.target_address_valid = VALID;
             }
             break;
         }
-
         }
     }
 
     for (int i = 0; i < BRANCH_QUEUE_SIZE; ++i)
     {
-        if (cpu->branchQueue[i].valid_bit && cpu->branchQueue[i].instr.target_address_valid
-        && !cpu->branchQueue[i].issuedToBFU)
+        if (cpu->branchQueue[i].valid_bit && cpu->branchQueue[i].instr.target_address_valid && !cpu->branchQueue[i].issuedToBFU)
         {
             cpu->execute_BFU = cpu->branchQueue[i].instr;
             cpu->branchQueue[i].issuedToBFU = VALID;
@@ -258,14 +253,12 @@ updateBranchQueue(APEX_CPU *cpu)
     }
 }
 
-
 static void
 updateLSQentrywithForwardedBus(APEX_CPU *cpu)
 {
     for (int i = cpu->LSQ_head; i <= cpu->LSQ_tail; ++i)
     {
-        if (cpu->lsq[i].established_bit && !cpu->lsq[i].memory_address_valid 
-            && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->lsq[i].instr.pc)
+        if (cpu->lsq[i].established_bit && !cpu->lsq[i].memory_address_valid && cpu->AFU_frwded_address != -1 && cpu->AFU_frwded_pc == cpu->lsq[i].instr.pc)
         {
 
             cpu->lsq[i].memory_address = cpu->AFU_frwded_address;
