@@ -147,6 +147,7 @@ branch_taken_flow(APEX_CPU *cpu)
             if (!cpu->execute_BFU.taken)
             {
                 cpu->BFU_frwded_pc = cpu->execute_BFU.target_address;
+                cpu->miss_branch_tag = cpu->execute_BFU.pc;
                 cpu->fetch.has_insn = TRUE;
             }
 
@@ -181,6 +182,7 @@ branch_not_taken_flow(APEX_CPU *cpu)
             if (cpu->execute_BFU.taken)
             {
                 cpu->BFU_frwded_pc = cpu->execute_BFU.pc + INCREMENTOR;
+                cpu->miss_branch_tag = cpu->execute_BFU.pc;
                 cpu->fetch.has_insn = TRUE;
             }
             

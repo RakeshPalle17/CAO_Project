@@ -212,41 +212,43 @@ print_stage_content(const char *name, const CPU_Stage *stage)
 static void
 print_forwarding_tags(APEX_CPU *cpu)
 {
+    printf("\n--------------\n");
+
     if (cpu->intFU_frwded_tag != -1)
     {
-        printf("\n--------------\nIntforwarding tag: P%d\n", cpu->intFU_frwded_tag);
+        printf("IntFU Forwarding-Tag: P%d ", cpu->intFU_frwded_tag);
     }
 
     if (cpu->MulFU_frwded_tag != -1)
     {
-        printf("\n--------------\nMulforwarding tag: P%d\n", cpu->MulFU_frwded_tag);
+        printf("MulFU Forwarding-Tag: P%d ", cpu->MulFU_frwded_tag);
     }
 
     if (cpu->AFU_frwded_tag != -1)
     {
-        printf("\n--------------\nAFUforwarding tag: P%d\n", cpu->AFU_frwded_tag);
+        printf("AFU Forwarding-Tag: P%d ", cpu->AFU_frwded_tag);
     }
 
     if (cpu->MAU_frwded_tag != -1)
     {
-        printf("\n--------------\nMAUforwarding tag: P%d\n", cpu->MAU_frwded_tag);
+        printf("MAU Forwarding-Tag: P%d ", cpu->MAU_frwded_tag);
     }
 
     if (cpu->BFU_frwded_tag != -1)
     {
-        printf("\n--------------\nBFUforwarding tag: P%d\n", cpu->BFU_frwded_tag);
+        printf("BFU Forwarding-Tag: P%d ", cpu->BFU_frwded_tag);
     }
 
     if (cpu->intFu_frwded_ccTag != -1)
     {
-        printf("\n--------------\ncc tag: cp%d\n", cpu->intFu_frwded_ccTag);
+        printf("\nCC-Tag: cp%d ", cpu->intFu_frwded_ccTag);
     }
 }
 
 static void
 print_memory_address_values(APEX_CPU *cpu)
 {
-    printf("\n--------------\n%s\n","Memory Addresses");
+    printf("\n-----------------\n%s","Memory Addresses: ");
     for (int i = 0; i < DATA_MEMORY_SIZE; i++)
     {
         if (cpu->data_memory[i] != -1)
@@ -254,6 +256,7 @@ print_memory_address_values(APEX_CPU *cpu)
             printf("MEM[%d] = %d ", i, cpu->data_memory[i]);
         }
     }
+    printf("\n-----------------");
 }
 
 /* Debug function which prints the register file
@@ -291,7 +294,7 @@ print_reg_file(const APEX_CPU *cpu)
 static void
 print_physicalRegisters_file(const APEX_CPU *cpu)
 {
-    printf("\n----------------\n%s\n----------------\n", "Physical Registers:");
+    printf("\n------------------\n%s\n------------------\n", "Physical Registers:");
 
     for (int i = 0; i < PHYSICAL_REG_FILE_SIZE; ++i)
     {
@@ -311,7 +314,7 @@ print_physicalRegisters_file(const APEX_CPU *cpu)
 static void
 print_CCPhysicalRegisters_file(const APEX_CPU *cpu)
 {
-    printf("\n----------------\n%s\n", "CC flag values:");
+    printf("\n----------------\n%s","CC Flag values: ");
 
     for (int i = 0; i < CC_REG_FILE_SIZE; ++i)
     {
@@ -320,7 +323,7 @@ print_CCPhysicalRegisters_file(const APEX_CPU *cpu)
             printf("cp%i {Z=%d, P=%d} ", i, cpu->ccRegFile[i].flag.zero, cpu->ccRegFile[i].flag.positive);
         }
     }
-    printf("\n");
+    printf("\n----------------");
 }
 
 static void
@@ -394,7 +397,7 @@ print_BTB(const APEX_CPU *cpu)
     {
         if (cpu->BTBEntry[i].branch_pc != 0)
         {
-            printf(" pc(%d) Prediction(%d%d)  Target[ %d ]", cpu->BTBEntry[i].branch_pc,
+            printf(" pc(%d) Prediction(%d%d)  Target[%d]", cpu->BTBEntry[i].branch_pc,
                    cpu->BTBEntry[i].recent_outcomes[0], cpu->BTBEntry[i].recent_outcomes[0],
                    cpu->BTBEntry[i].target_pc);
         }

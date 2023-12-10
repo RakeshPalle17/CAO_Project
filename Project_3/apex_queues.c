@@ -102,12 +102,11 @@ is_LSQ_Full(APEX_CPU *cpu)
     return cpu->LSQ_size == LSQ_SIZE;
 }
 
-static int
-is_BIS_Full(APEX_CPU *cpu)
-{
-    return cpu->BIS_size == BIS_SIZE;
-}
-
+// static int
+// is_BIS_Full(APEX_CPU *cpu)
+// {
+//     return cpu->BIS_size == BIS_SIZE;
+// }
 
 static void
 establish_IssueQueueEntry(APEX_CPU *cpu)
@@ -142,16 +141,15 @@ establish_BranchQueueEntry(APEX_CPU *cpu)
     }
 }
 
-static void
-establish_BISEntry(APEX_CPU *cpu)
-{
-    cpu->BIS_tail = (cpu->BIS_tail + 1) % BIS_SIZE;
-    cpu->BIStack[cpu->BIS_tail].established_bit = VALID;
-    cpu->BIStack[cpu->BIS_tail].branch_tag = cpu->BIS_tail;
-    cpu->branch_tag = cpu->BIS_tail;
-    cpu->BIS_size++;
+// static void
+// establish_BISEntry(APEX_CPU *cpu)
+// {
+//     cpu->BIS_tail = (cpu->BIS_tail + 1) % BIS_SIZE;
+//     cpu->BIStack[cpu->BIS_tail].established_bit = VALID;
+//     cpu->BIStack[cpu->BIS_tail].branch_tag = ++cpu->branch_tag;
+//     cpu->BIS_size++;
 
-}
+// }
 
 static void
 establish_ROBEntry(APEX_CPU *cpu, int loadorstore)
@@ -162,14 +160,14 @@ establish_ROBEntry(APEX_CPU *cpu, int loadorstore)
         cpu->RoB[cpu->ROB_tail].established_bit = VALID;
         cpu->RoB[cpu->ROB_tail].instr = cpu->issue_queue;
         cpu->RoB[cpu->ROB_tail].lsq_index = cpu->LSQ_tail;
-        cpu->RoB[cpu->ROB_tail].bis_index = cpu->branch_tag;
+        cpu->RoB[cpu->ROB_tail].branch_tag = cpu->branch_tag;
         cpu->ROB_size++;
     }
     else
     {
         cpu->ROB_tail = (cpu->ROB_tail + 1) % ROB_SIZE;
         cpu->RoB[cpu->ROB_tail].established_bit = VALID;
-        cpu->RoB[cpu->ROB_tail].bis_index = cpu->branch_tag;
+        cpu->RoB[cpu->ROB_tail].branch_tag = cpu->branch_tag;
         cpu->RoB[cpu->ROB_tail].instr = cpu->issue_queue;
         cpu->ROB_size++;
     }
@@ -236,36 +234,54 @@ removeIssueQueueEntry(APEX_CPU *cpu)
 
 static void
 removeROBTail(APEX_CPU *cpu)
-{       
-    cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
-    cpu->ROB_size--;
-    cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
-}
-
-static void
-removeLSQTail(APEX_CPU *cpu)
-{       
-    if(cpu->RoB[cpu->ROB_tail].lsq_index == cpu->LSQ_tail)
+{
+    while (TRUE)
     {
-
-    cpu->lsq[cpu->LSQ_tail].established_bit = INVALID;
-    cpu->LSQ_size--;
-    cpu->LSQ_tail = (cpu->LSQ_tail - 1) % ROB_SIZE;
-
+        if (cpu->miss_branch_tag != cpu->RoB[cpu->ROB_tail].instr.pc && cpu->RoB[cpu->ROB_tail].established_bit)
+        {
+            cpu->RoB[cpu->ROB_tail].established_bit = INVALID;
+            cpu->ROB_size--;
+            cpu->ROB_tail = (cpu->ROB_tail - 1) % ROB_SIZE;
+            // cpu->freePhysicalRegList[PHYSICAL_REG_FILE_SIZE - 1] = cpu->RoB[i].instr.phyrd;
+        }
+        else
+        {
+            break;
+        }
     }
 }
 
 static void
-updateROBEntry(APEX_CPU *cpu)
+removeLSQTail(APEX_CPU *cpu)
 {
-    cpu->RoB[cpu->ROB_tail].bis_index = cpu->BIS_tail;
+
+    while (TRUE)
+    {
+        if (cpu->miss_branch_tag != cpu->lsq[cpu->LSQ_tail].instr.pc && cpu->lsq[cpu->LSQ_tail].established_bit)
+        {
+
+            cpu->lsq[cpu->LSQ_tail].established_bit = INVALID;
+            cpu->LSQ_size--;
+            cpu->LSQ_tail = (cpu->LSQ_tail - 1) % LSQ_SIZE;
+        }
+        else
+        {
+            break;
+        }
+    }
 }
 
-static void
-updateBISEntry(APEX_CPU *cpu)
-{
-    cpu->BIStack[cpu->BIS_tail].rob_index = cpu->ROB_tail;
-}
+// static void
+// updateROBEntry(APEX_CPU *cpu)
+// {
+//     cpu->RoB[cpu->ROB_tail].bis_index = cpu->BIS_tail;
+// }
+
+// static void
+// updateBISEntry(APEX_CPU *cpu)
+// {
+//     cpu->BIStack[cpu->BIS_tail].rob_index = cpu->ROB_tail;
+// }
 
 static void
 removeBranchQueueEntry(APEX_CPU *cpu)

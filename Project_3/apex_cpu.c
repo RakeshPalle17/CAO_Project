@@ -157,8 +157,6 @@ APEX_fetch(APEX_CPU *cpu)
             }
         }
 
-        // updateBTB(cpu);
-
         if (!cpu->decode_rename1.stall && cpu->fetch.taken)
         {
             cpu->pc = cpu->BTBEntry[i].target_pc;
@@ -182,7 +180,6 @@ APEX_fetch(APEX_CPU *cpu)
             cpu->pc = cpu->BFU_frwded_pc;
 
             cpu->fetch.has_insn = TRUE;
-
             cpu->decode_rename1.has_insn = FALSE;
             cpu->rename2_dispatch.has_insn = FALSE;
             cpu->issue_queue.has_insn = FALSE;
@@ -193,8 +190,15 @@ APEX_fetch(APEX_CPU *cpu)
 
             cpu->BFU_frwded_pc = -1;
 
-            removeBranchQueueEntry(cpu);
-            
+            if (cpu->miss_branch_tag != -1)
+            {
+                removeROBTail(cpu);
+                removeLSQTail(cpu);
+                removeIssueQueueEntry(cpu);
+                removeBranchQueueEntry(cpu);
+            }
+
+            cpu->miss_branch_tag = -1;
         }
 
         if (ENABLE_DEBUG_MESSAGES)
@@ -452,6 +456,7 @@ APEX_decode_rename1(APEX_CPU *cpu)
         }
 
         case OPCODE_HALT:
+        case OPCODE_NOP:
         {
             break;
         }
@@ -587,7 +592,7 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
         case OPCODE_BNZ:
         case OPCODE_BP:
         {
-            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu) && !is_BIS_Full(cpu))
+            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu))
             {
                 cpu->issue_queue = cpu->rename2_dispatch;
                 cpu->rename2_dispatch.stall = FALSE;
@@ -602,7 +607,7 @@ APEX_rename2_dispatch(APEX_CPU *cpu)
         case OPCODE_BNP:
         {
 
-            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu) && !is_BIS_Full(cpu))
+            if (!is_IssueQueue_Full(cpu) && !is_BranchQueue_Full(cpu) && !is_ROB_Full(cpu))
             {
                 cpu->issue_queue = cpu->rename2_dispatch;
                 cpu->rename2_dispatch.stall = FALSE;
@@ -685,11 +690,10 @@ APEX_issue_queue(APEX_CPU *cpu)
         case OPCODE_BP:
         case OPCODE_BNP:
         {
-            establish_BISEntry(cpu);
+            // establish_BISEntry(cpu);
             establish_ROBEntry(cpu, loadorstore);
             establish_IssueQueueEntry(cpu);
             establish_BranchQueueEntry(cpu);
-            updateBISEntry(cpu);
             break;
         }
         case OPCODE_JUMP:
@@ -844,9 +848,14 @@ APEX_execute_IntFU(APEX_CPU *cpu)
             break;
         }
 
-        case OPCODE_HALT:
         case OPCODE_NOP:
         {
+            break;
+        }
+        
+        case OPCODE_HALT:
+        {
+            cpu->HALT = TRUE;
             break;
         }
         }
@@ -1122,9 +1131,9 @@ APEX_execute_BFU(APEX_CPU *cpu)
         }
         }
 
-        removeBranchQueueEntry(cpu);
-
         cpu->execute_BFU.has_insn = FALSE;
+
+        removeBranchQueueEntry(cpu);
 
         if (ENABLE_DEBUG_MESSAGES)
         {
@@ -1149,7 +1158,6 @@ APEX_execute_BFU(APEX_CPU *cpu)
 static int
 APEX_commit_to_ARF(APEX_CPU *cpu)
 {
-
     if (cpu->delete_ROB_head)
     {
         cpu->RoB[cpu->ROB_head].established_bit = INVALID;
@@ -1189,7 +1197,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
                 cpu->regs[REG_FILE_SIZE - 1].flags = cpu->ccRegFile[cpu->commit_ARF.flag].flag;
 
-                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
+                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
@@ -1207,7 +1215,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
 
-                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
+                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
@@ -1224,7 +1232,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
 
-                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
+                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
 
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
@@ -1246,7 +1254,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
                 cpu->regs[cpu->commit_ARF.rs1].value = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
 
-                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
+                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
@@ -1267,7 +1275,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             {
                 cpu->regs[cpu->commit_ARF.rs2].value = cpu->physicalRegFile[cpu->commit_ARF.phyrs3].data_field;
 
-                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
+                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
@@ -1298,7 +1306,7 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
             {
                 cpu->regs[cpu->commit_ARF.rd].value = cpu->physicalRegFile[cpu->commit_ARF.phyrd].data_field;
 
-                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry != -1)
+                if (cpu->RoB[cpu->ROB_head].prev_renametable_entry == -1)
                 {
                     cpu->RoB[cpu->ROB_head].prev_renametable_entry = cpu->commit_ARF.phyrd;
                 }
@@ -1326,27 +1334,35 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         case OPCODE_BP:
         case OPCODE_BNP:
         {
-            for(int i = 0; i < BIS_SIZE; i++)
-            {
-            if(cpu->RoB[cpu->ROB_head].bis_index == cpu->BIStack[i].rob_index)
-            {
-                cpu->BIStack[i].established_bit = ADD_ZERO;
-                cpu->BIS_tail = i + 1;
-                cpu->BIS_size--;
-            }
+            cpu->delete_ROB_head = 1;
 
-            }
+            // if (cpu->RoB[cpu->ROB_head].branch_tag == cpu->BIStack[cpu->BIS_head].branch_tag)
+            // {
+            //     cpu->BIStack[cpu->BIS_head].established_bit = INVALID;
+            //     cpu->BIS_head = (cpu->BIS_head + 1) % BIS_SIZE;
+            //     cpu->BIS_size--;
+            // }
 
             break;
         }
         case OPCODE_NOP:
-        case OPCODE_HALT:
         case OPCODE_CMP:
         case OPCODE_JUMP:
         {
             cpu->delete_ROB_head = 1;
             break;
         }
+
+        case OPCODE_HALT:
+        {
+            if (cpu->HALT)
+            {
+                cpu->HALT = FALSE;
+                print_ROB(cpu);
+                return TRUE;
+            }
+        }
+        
         }
 
         cpu->commit_ARF.has_insn = FALSE;
@@ -1355,12 +1371,6 @@ APEX_commit_to_ARF(APEX_CPU *cpu)
         if (ENABLE_DEBUG_MESSAGES)
         {
             print_stage_content("commit_ARF", &cpu->commit_ARF);
-        }
-
-        if (cpu->commit_ARF.opcode == OPCODE_HALT)
-        {
-            /* Stop the APEX simulator */
-            return TRUE;
         }
     }
     else
@@ -1414,6 +1424,7 @@ APEX_cpu_init(const char *filename)
     cpu->delete_LSQ_head = ADD_ZERO;
     cpu->mau_cycle_latency = ADD_ZERO;
     cpu->stored_in_memory = ADD_ZERO;
+    cpu->HALT = ADD_ZERO;
 
     cpu->intFU_frwded_tag = -1;
     cpu->intFU_frwded_value = -1;
@@ -1436,6 +1447,7 @@ APEX_cpu_init(const char *filename)
     cpu->BFU_frwded_value = -1;
 
     cpu->branch_tag = -1;
+    cpu->miss_branch_tag = -1;
 
     /* Parse input file and create code memory */
     cpu->code_memory = create_code_memory(filename, &cpu->code_memory_size);

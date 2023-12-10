@@ -139,7 +139,7 @@ typedef struct ReorderBuffer
 {
     int established_bit;
     int lsq_index;
-    int bis_index;
+    int branch_tag;
     int prev_renametable_entry;
     CPU_Stage instr;
 } ReorderBuffer;
@@ -185,6 +185,7 @@ typedef struct APEX_CPU
     int BIS_size;
     int delete_BIS_head;
     int branch_tag;
+    int miss_branch_tag;
 
     int intFU_frwded_tag;
     int intFU_frwded_value;
@@ -230,6 +231,7 @@ typedef struct APEX_CPU
     int stored_in_memory;
     int num_of_cycles_to_run;
     int compare_value;
+    int HALT;
 
     /* Pipeline stages */
     CPU_Stage fetch;
